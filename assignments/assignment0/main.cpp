@@ -35,6 +35,7 @@ ew::Transform modelTrans;
 
 //texutres
 GLuint brickTexture;
+GLuint normalMapping;
 
 struct Material 
 {
@@ -61,6 +62,9 @@ void renderMonekey(ew::Shader& shader, ew::Model& model,GLFWwindow* window)
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, brickTexture);
 
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, normalMapping);
+
 
 	shader.use();
 	
@@ -80,7 +84,7 @@ void renderMonekey(ew::Shader& shader, ew::Model& model,GLFWwindow* window)
 
 	//textures
 	shader.setInt("_MainTex", 0);
-
+	shader.setInt("_NormalMap", 1);
 	model.draw();
 
 	controller.move(window, &camera, deltaTime);
@@ -101,7 +105,7 @@ int main() {
 
 	//chache 
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
-	ew::Model model = ew::Model("assets/Suzanne.obj");
+	ew::Model model = ew::Model("assets/Suzanne.fbx");
 
 	//init camera
 	camera.position = glm::vec3(0.0f, 0.0f, 5.0f);
@@ -110,7 +114,9 @@ int main() {
 	camera.fov = 60.0f;
 
 	//texture
-	brickTexture = ew::loadTexture("assets/brick_color.jpg");
+	brickTexture = ew::loadTexture("assets/bricks/Bricks075A_1K-JPG_Color.jpg");
+	normalMapping = ew::loadTexture("assets/bricks/Bricks075A_1K-JPG_NormalDX.jpg");
+	//brickTexture = ew::loadTexture("assets/brick_color.jpg");
 	
 
 

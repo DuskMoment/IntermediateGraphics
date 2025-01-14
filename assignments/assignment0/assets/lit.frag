@@ -6,6 +6,7 @@ in Surface{
 	vec3 WorldPos;
 	vec3 WorldNormal;
 	vec2 TexCoord;
+	mat3 TBN;
 }fs_in;
 
 struct Material{
@@ -21,6 +22,7 @@ uniform Material _Material;
 
 //texture uniforms
 uniform sampler2D _MainTex;
+uniform sampler2D _NormalMap;
 
 //light uniforms
 uniform vec3 _LightDirection = vec3(0.0, -1.0,0.0);
@@ -33,7 +35,15 @@ uniform vec3 _EyePos;
 
 void main()
 {
+	//load normal map
+	
 	vec3 normal = normalize(fs_in.WorldNormal);
+
+	//case one of normal mapping
+	normal = texture(_NormalMap, fs_in.TexCoord).rgb;
+
+	normal = normalize(normal * 2.0 - 1.0);
+	normal = normalize(fs_in.TBN * normal);
 
 	vec3 toLight = -_LightDirection;
 
@@ -56,4 +66,5 @@ void main()
 	vec3 objectColor = texture(_MainTex,fs_in.TexCoord).rgb;
 
 	FragColor = vec4(objectColor * lightColor, 1.0);
+	//FragColor = vec4(normal, 1.0);
 }
