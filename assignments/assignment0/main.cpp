@@ -26,20 +26,25 @@ float prevFrameTime;
 float deltaTime;
 
 
-
+//camera
 ew::Camera camera;
-ew::Transform modelTrans;
 ew::CameraController controller;
+
+//transfrom
+ew::Transform modelTrans;
+
+//texutres
 GLuint brickTexture;
 
-struct Material {
+struct Material 
+{
 	float Ka = 1.0;
 	float Kd = 0.5;
 	float Ks = 0.5;
 	float Shininess = 128;
 }material;
 
-void qwerty(ew::Shader& shader, ew::Model& model,GLFWwindow* window)
+void renderMonekey(ew::Shader& shader, ew::Model& model,GLFWwindow* window)
 {
 	
 	//pipeline definition
@@ -58,27 +63,30 @@ void qwerty(ew::Shader& shader, ew::Model& model,GLFWwindow* window)
 
 
 	shader.use();
-	shader.setMat4("_Model", glm::mat4(1.0f));
-	shader.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
 	
+	//camera uniforms
+	shader.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
+	shader.setVec3("_EyePos", camera.position);
+
+	//model unifroms
 	modelTrans.rotation = glm::rotate(modelTrans.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
 	shader.setMat4("_Model", modelTrans.modelMatrix());
 
-	shader.setInt("_MainTex", 0);
-
-	shader.setVec3("_EyePos", camera.position);
-
+	//material
 	shader.setFloat("_Material.Ka", material.Ka);
 	shader.setFloat("_Material.Kd", material.Kd);
 	shader.setFloat("_Material.Ks", material.Ks);
 	shader.setFloat("_Material.Shininess", material.Shininess);
 
+	//textures
+	shader.setInt("_MainTex", 0);
+
 	model.draw();
 
 	controller.move(window, &camera, deltaTime);
 
-	
 }
+
 void resetCamera(ew::Camera* camera, ew::CameraController* controller)
 {
 	camera->position = glm::vec3(0.0, 0.0, 5.0f);
@@ -86,7 +94,6 @@ void resetCamera(ew::Camera* camera, ew::CameraController* controller)
 	controller->yaw = controller->pitch = 0;
 
 }
-
 
 int main() {
 	GLFWwindow* window = initWindow("Assignment 0", screenWidth, screenHeight);
@@ -96,6 +103,7 @@ int main() {
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
 	ew::Model model = ew::Model("assets/Suzanne.obj");
 
+	//init camera
 	camera.position = glm::vec3(0.0f, 0.0f, 5.0f);
 	camera.target = glm::vec3(0.0f, 0.0f, 0.0f);
 	camera.aspectRatio = (float)screenWidth / screenHeight;
@@ -117,7 +125,7 @@ int main() {
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		qwerty(shader, model, window);
+		renderMonekey(shader, model, window);
 
 		drawUI();
 		
@@ -125,6 +133,7 @@ int main() {
 		glfwSwapBuffers(window);
 	}
 	printf("Shutting down...");
+
 }
 
 void drawUI() {
