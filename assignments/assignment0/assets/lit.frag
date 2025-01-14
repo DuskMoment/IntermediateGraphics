@@ -38,19 +38,16 @@ void main()
 	//load normal map
 	
 	vec3 normal = normalize(fs_in.WorldNormal);
-
-	//case one of normal mapping
 	normal = texture(_NormalMap, fs_in.TexCoord).rgb;
-
 	normal = normalize(normal * 2.0 - 1.0);
-	normal = normalize(fs_in.TBN * normal);
 
-	vec3 toLight = -_LightDirection;
+	vec3 toLight = _LightDirection;
+	toLight = fs_in.TBN  * -toLight;
 
 	//defuse lighting
 	float diffuseFactor = max(dot(normal,toLight),0.0);
 
-	vec3 toEye = normalize(_EyePos - fs_in.WorldPos);
+	vec3 toEye = fs_in.TBN * normalize(_EyePos - fs_in.WorldPos);
 
 	//blinn phong
 	vec3 h = normalize(toLight + toEye);

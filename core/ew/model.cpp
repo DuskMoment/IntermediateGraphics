@@ -51,8 +51,6 @@ namespace ew {
 			if (aiMesh->HasTangentsAndBitangents())
 			{
 				vertex.tangent = glm::vec3(convertAIVec3(aiMesh->mTangents[i]));
-
-				vertex.biTangent = glm::vec3(convertAIVec3(aiMesh->mBitangents[i]));
 			}
 			meshData.vertices.push_back(vertex);
 		}
