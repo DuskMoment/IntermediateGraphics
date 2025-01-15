@@ -25,7 +25,6 @@ int screenHeight = 720;
 float prevFrameTime;
 float deltaTime;
 
-
 //camera
 ew::Camera camera;
 ew::CameraController controller;
@@ -45,7 +44,7 @@ struct Material
 	float Shininess = 128;
 }material;
 
-void renderMonekey(ew::Shader& shader, ew::Model& model,GLFWwindow* window)
+void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 {
 	
 	//pipeline definition
@@ -72,7 +71,7 @@ void renderMonekey(ew::Shader& shader, ew::Model& model,GLFWwindow* window)
 	shader.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
 	shader.setVec3("_EyePos", camera.position);
 
-	//model unifroms
+	//model uniforms
 	modelTrans.rotation = glm::rotate(modelTrans.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
 	shader.setMat4("_Model", modelTrans.modelMatrix());
 
@@ -85,6 +84,7 @@ void renderMonekey(ew::Shader& shader, ew::Model& model,GLFWwindow* window)
 	//textures
 	shader.setInt("_MainTex", 0);
 	shader.setInt("_NormalMap", 1);
+
 	model.draw();
 
 	controller.move(window, &camera, deltaTime);
@@ -100,6 +100,7 @@ void resetCamera(ew::Camera* camera, ew::CameraController* controller)
 }
 
 int main() {
+
 	GLFWwindow* window = initWindow("Assignment 0", screenWidth, screenHeight);
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
