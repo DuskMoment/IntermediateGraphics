@@ -60,6 +60,5 @@ void main()
 
 	vec3 objectColor = texture(_MainTex,fs_in.TexCoord).rgb;
 
-	//FragColor = vec4(objectColor * lightColor, 1.0);
-	FragColor = vec4(0.0);
+	FragColor = vec4(objectColor * lightColor, 1.0);
 }

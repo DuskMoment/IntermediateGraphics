@@ -15,6 +15,9 @@
 #include <ew/transform.h>
 #include <ew/texture.h>
 
+#include <tuple>
+
+
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
 void drawUI();
@@ -34,7 +37,26 @@ ew::Transform modelTrans;
 
 //texutres
 GLuint brickTexture;
+GLuint ZAtoon;
 GLuint normalMapping;
+
+typedef struct 
+{
+
+	glm::vec3 highlight;
+	glm::vec3 shadow;
+
+}Palette;
+
+static int palette_index = 0;
+static std::vector<std::tuple<std::string, Palette>> palette{
+	{"Sunny Day", {{1.00f, 1.00f, 1.00f}, {0.60f, 0.54f, 0.52f}}},
+	{"Bright Night", {{0.47f, 0.58f, 0.68f}, {0.32f, 0.39f, 0.57f}}},
+	{"Rainy Day", {{0.62f, 0.69f, 0.67f},{0.50f, 0.55f, 0.50f}}},
+	{"Rainy Night", {{0.24f, 0.36f, 0.54f},{0.25f, 0.31f, 0.31f}}},
+};
+
+
 
 struct Material 
 {
@@ -62,7 +84,10 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 	glBindTexture(GL_TEXTURE_2D, brickTexture);
 
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, normalMapping);
+	glBindTexture(GL_TEXTURE_2D, ZAtoon);
+
+	//glActiveTexture(GL_TEXTURE1);
+	//glBindTexture(GL_TEXTURE_2D, normalMapping);
 
 
 	shader.use();
@@ -81,9 +106,15 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 	shader.setFloat("_Material.Ks", material.Ks);
 	shader.setFloat("_Material.Shininess", material.Shininess);
 
+	//pallet uniforms
+	shader.setVec3("_Pallet.highlight", std::get<Palette>(palette[palette_index]).highlight);
+	shader.setVec3("_Pallet.shadow", std::get<Palette>(palette[palette_index]).shadow);
+
+	
 	//textures
 	shader.setInt("_MainTex", 0);
-	shader.setInt("_NormalMap", 1);
+	shader.setInt("zatoon", 1);
+	//toonShader.setInt("_NormalMap", 1);
 
 	model.draw();
 
@@ -105,9 +136,14 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
 	//chache 
-	
+	ew::Shader toonShader = ew::Shader("assets/toon.vert", "assets/toon.frag");
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
-	ew::Model model = ew::Model("assets/Suzanne.fbx");
+	ew::Model model = ew::Model("assets/skull.obj");
+
+	modelTrans = ew::Transform();
+
+	modelTrans.scale = glm::vec3(0.5);
+
 
 	//init camera
 	camera.position = glm::vec3(0.0f, 0.0f, 5.0f);
@@ -116,8 +152,10 @@ int main() {
 	camera.fov = 60.0f;
 
 	//texture
-	brickTexture = ew::loadTexture("assets/bricks/Bricks075A_1K-JPG_Color.jpg");
-	normalMapping = ew::loadTexture("assets/bricks/Bricks075A_1K-JPG_NormalDX.jpg");
+	brickTexture = ew::loadTexture("assets/Txo_dokuo.png");
+	ZAtoon = ew::loadTexture("assets/ZAtoon.png");
+
+	//normalMapping = ew::loadTexture("assets/bricks/Bricks075A_1K-JPG_NormalDX.jpg");
 	//brickTexture = ew::loadTexture("assets/brick_color.jpg");
 	
 
@@ -133,7 +171,7 @@ int main() {
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		renderMonekey(shader, model, window);
+		renderMonekey(toonShader, model, window);
 
 		drawUI();
 		
@@ -151,7 +189,25 @@ void drawUI() {
 
 	ImGui::Begin("Settings");
 	ImGui::Text("Add Controls Here!");
-	
+	if (ImGui::BeginCombo("Palette", std::get<std::string>(palette[palette_index]).c_str()))
+	{
+		for (auto n = 0; n < palette.size(); ++n)
+		{
+			auto is_selected = (std::get<0>(palette[palette_index]) == std::get<0>(palette[n]));
+			if (ImGui::Selectable(std::get<std::string>(palette[n]).c_str(), is_selected))
+			{
+				palette_index = n;
+			}
+			if (is_selected)
+			{
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+		ImGui::EndCombo();
+	}
+	ImGui::ColorEdit3("Highlight", &std::get<Palette>(palette[palette_index]).highlight[0]);
+	ImGui::ColorEdit3("Shadow", &std::get<Palette>(palette[palette_index]).shadow[0]);
+
 	if (ImGui::Button("Reset Camera"))
 	{
 		resetCamera(&camera, &controller);
@@ -164,6 +220,7 @@ void drawUI() {
 		ImGui::SliderFloat("Shininess", &material.Shininess, 2.0f, 1024.0f);
 
 	}
+
 	
 	ImGui::End();
 
