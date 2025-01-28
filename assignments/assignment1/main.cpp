@@ -160,9 +160,9 @@ int main() {
 	glGenBuffers(1, &fullscreenQuad.vbo);
 
 	glBindVertexArray(fullscreenQuad.vao);
-	glBindBuffer(GL_VERTEX_ARRAY, fullscreenQuad.vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, fullscreenQuad.vbo);
 
-	glBufferData(GL_VERTEX_ARRAY, sizeof(quad_vertices), &quad_vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, GL_STATIC_DRAW);
 
 	glEnableVertexAttribArray(0); //positions
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
