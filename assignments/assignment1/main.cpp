@@ -38,6 +38,14 @@ GLuint normalMapping;
 
 
 
+struct FullscreenQuad
+{
+	GLuint vao;
+	GLuint vbo;
+
+}fullscreenQuad;
+
+
 struct Material 
 {
 	float Ka = 1.0;
@@ -56,9 +64,24 @@ struct Framebuffer
 
 };
 
+Framebuffer buffer;
+
+static float quad_vertices[] = {
+	// pos (x, y) texcoord (u, v)
+	-1.0f,  1.0f, 0.0f, 1.0f,
+	-1.0f, -1.0f, 0.0f, 0.0f,
+	1.0f, -1.0f, 1.0f, 0.0f,
+
+	-1.0f,  1.0f, 0.0f, 1.0f,
+	1.0f, -1.0f, 1.0f, 0.0f,
+	1.0f,  1.0f, 1.0f, 1.0f,
+};
+
 void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 {
-	
+	//bind new buffer? - this is causeing the crash
+	glBindFramebuffer(GL_FRAMEBUFFER, buffer.fbo);
+
 	//pipeline definition
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
@@ -99,8 +122,10 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 
 	model.draw();
 
-	controller.move(window, &camera, deltaTime);
+	//controller.move(window, &camera, deltaTime);
 
+	//unbind buffer
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void resetCamera(ew::Camera* camera, ew::CameraController* controller)
@@ -113,15 +138,16 @@ void resetCamera(ew::Camera* camera, ew::CameraController* controller)
 
 int main() {
 
-	GLFWwindow* window = initWindow("Assignment 0", screenWidth, screenHeight);
+	GLFWwindow* window = initWindow("Assignment 1", screenWidth, screenHeight);
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
 	//chache 
 	
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
+	ew::Shader full = ew::Shader("assets/blin.vert", "assets/blin.frag");
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 
-	Framebuffer buffer;
+	
 
 	//init camera
 	camera.position = glm::vec3(0.0f, 0.0f, 5.0f);
@@ -129,6 +155,24 @@ int main() {
 	camera.aspectRatio = (float)screenWidth / screenHeight;
 	camera.fov = 60.0f;
 
+	//inint full screen quad
+	glGenVertexArrays(1, &fullscreenQuad.vao);
+	glGenBuffers(1, &fullscreenQuad.vbo);
+
+	glBindVertexArray(fullscreenQuad.vao);
+	glBindBuffer(GL_VERTEX_ARRAY, fullscreenQuad.vbo);
+
+	glBufferData(GL_VERTEX_ARRAY, sizeof(quad_vertices), &quad_vertices, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0); //positions
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1); //text coords
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) (sizeof(float)*2));
+
+	glBindVertexArray(0);
+	//glVertexAttribPointer()
+
+	
 	//texture
 	brickTexture = ew::loadTexture("assets/bricks/Bricks075A_1K-JPG_Color.jpg");
 	normalMapping = ew::loadTexture("assets/bricks/Bricks075A_1K-JPG_NormalDX.jpg");
@@ -138,6 +182,7 @@ int main() {
 	glBindFramebuffer(GL_FRAMEBUFFER, buffer.fbo);
 
 	glGenTextures(1, &buffer.color0);
+
 	glBindTexture(GL_TEXTURE_2D, buffer.color0);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -152,6 +197,7 @@ int main() {
 
 	}
 
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
@@ -160,11 +206,26 @@ int main() {
 		deltaTime = time - prevFrameTime;
 		prevFrameTime = time;
 
-		//RENDER
-		glClearColor(0.6f,0.8f,0.92f,1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		renderMonekey(shader, model, window);
+
+		glDisable(GL_DEPTH_TEST);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		full.use();
+		full.setInt("tex", 0);
+
+		glBindVertexArray(fullscreenQuad.vao);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, buffer.color0);
+
+		//crashes
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+
+		glBindVertexArray(0);
+		
+
 
 		drawUI();
 		
@@ -182,7 +243,7 @@ void drawUI() {
 
 	ImGui::Begin("Settings");
 	ImGui::Text("Add Controls Here!");
-	
+	ImGui::Image((ImTextureID)(intptr_t)buffer.color0, ImVec2(800, 600));
 	if (ImGui::Button("Reset Camera"))
 	{
 		resetCamera(&camera, &controller);
