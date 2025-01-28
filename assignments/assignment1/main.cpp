@@ -122,7 +122,7 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 
 	model.draw();
 
-	//controller.move(window, &camera, deltaTime);
+	controller.move(window, &camera, deltaTime);
 
 	//unbind buffer
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -145,6 +145,10 @@ int main() {
 	
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
 	ew::Shader full = ew::Shader("assets/blin.vert", "assets/blin.frag");
+	ew::Shader inverse = ew::Shader("assets/inverse.vert", "assets/inverse.frag");
+	ew::Shader grayScale = ew::Shader("assets/inverse.vert", "assets/grayScale.frag");
+	ew::Shader blur = ew::Shader("assets/blur.vert", "assets/blur.frag");
+	ew::Shader chrom = ew::Shader("assets/chromatic.vert", "assets/chromatic.frag");
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 
 	
@@ -213,8 +217,8 @@ int main() {
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		full.use();
-		full.setInt("tex", 0);
+		chrom.use();
+		chrom.setInt("tex", 0);
 
 		glBindVertexArray(fullscreenQuad.vao);
 		glActiveTexture(GL_TEXTURE0);
