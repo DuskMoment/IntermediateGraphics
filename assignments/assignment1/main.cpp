@@ -14,6 +14,7 @@
 #include <ew/cameraController.h>
 #include <ew/transform.h>
 #include <ew/texture.h>
+#include <wm/framebuffer.h>
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
@@ -64,6 +65,8 @@ struct Framebuffer
 
 };
 
+wm::FrameBuffer libBuffer;
+
 Framebuffer buffer;
 
 static float quad_vertices[] = {
@@ -80,7 +83,7 @@ static float quad_vertices[] = {
 void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 {
 	//bind new buffer? - this is causeing the crash
-	glBindFramebuffer(GL_FRAMEBUFFER, buffer.fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, libBuffer.fbo);
 
 	//pipeline definition
 	glEnable(GL_CULL_FACE);
@@ -182,6 +185,10 @@ int main() {
 	normalMapping = ew::loadTexture("assets/bricks/Bricks075A_1K-JPG_NormalDX.jpg");
 	//brickTexture = ew::loadTexture("assets/brick_color.jpg");
 	
+	//lib buffer
+	libBuffer = wm::createFrameBuffer(800, 600, GL_RGB);
+
+	//buffer code
 	glGenFramebuffers(1, &buffer.fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, buffer.fbo);
 
@@ -222,7 +229,7 @@ int main() {
 
 		glBindVertexArray(fullscreenQuad.vao);
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, buffer.color0);
+		glBindTexture(GL_TEXTURE_2D, libBuffer.colorBuffer[0]);
 
 		//crashes
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -247,7 +254,7 @@ void drawUI() {
 
 	ImGui::Begin("Settings");
 	ImGui::Text("Add Controls Here!");
-	ImGui::Image((ImTextureID)(intptr_t)buffer.color0, ImVec2(800, 600));
+	ImGui::Image((ImTextureID)(intptr_t)libBuffer.colorBuffer[0], ImVec2(800, 600));
 	if (ImGui::Button("Reset Camera"))
 	{
 		resetCamera(&camera, &controller);
