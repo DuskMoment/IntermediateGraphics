@@ -12,14 +12,26 @@ namespace wm
 		glGenFramebuffers(1, &buffer.fbo);
 		glBindFramebuffer(GL_FRAMEBUFFER, buffer.fbo);
 
+		//create color
 		glGenTextures(1, &buffer.colorBuffer[0]);
 
 		glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer[0]);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, hight, 0, colorFormat, GL_UNSIGNED_BYTE, nullptr);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+
+		//create depth
+		glGenRenderbuffers(1, &buffer.depthBuffer);
+
+		glBindRenderbuffer(GL_RENDERBUFFER, buffer.depthBuffer);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, hight);
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer.colorBuffer[0], 0);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer.depthBuffer);
+		
 
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		{

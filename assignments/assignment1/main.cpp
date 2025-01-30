@@ -26,6 +26,17 @@ int screenHeight = 720;
 float prevFrameTime;
 float deltaTime;
 
+//UI for post processing 
+static int effect_index = 0;
+static std::vector<std::string> post_processing_effects = {
+	"None",
+	"Grayscale",
+	"Kernel Blur",
+	"Inverse",
+	"Chromatic Aberration",
+	"CRT",
+};
+
 //camera
 ew::Camera camera;
 ew::CameraController controller;
@@ -130,6 +141,48 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 	//unbind buffer
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
+void drawPostEffect(wm::FrameBuffer buffer, std::vector<ew::Shader> postList)
+{
+
+	switch (effect_index)
+	{
+	case 1:
+		postList[1].use();
+		postList[1].setInt("tex", 0);
+		break;
+	case 2:
+		postList[2].use();
+		postList[2].setInt("tex", 0);
+		break;
+	case 3:
+		postList[3].use();
+		postList[3].setInt("tex", 0);
+		break;
+	case 4:
+		postList[4].use();
+		postList[4].setInt("tex", 0);
+		break;
+	case 5:
+		postList[5].use();
+		postList[5].setInt("tex", 0);
+		break;
+	default:
+		postList[0].use();
+		postList[0].setInt("tex", 0);
+		break;
+	}
+	//shader.use();
+	
+
+	glBindVertexArray(fullscreenQuad.vao);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer[0]);
+
+
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+	glBindVertexArray(0);
+};
 
 void resetCamera(ew::Camera* camera, ew::CameraController* controller)
 {
@@ -154,6 +207,10 @@ int main() {
 	ew::Shader chrom = ew::Shader("assets/chromatic.vert", "assets/chromatic.frag");
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 
+	std::vector<ew::Shader> postEffects =
+	{
+		full, grayScale, blur, inverse, chrom, full
+	};
 	
 
 	//init camera
@@ -224,18 +281,8 @@ int main() {
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		chrom.use();
-		chrom.setInt("tex", 0);
-
-		glBindVertexArray(fullscreenQuad.vao);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, libBuffer.colorBuffer[0]);
-
-		//crashes
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-
-		glBindVertexArray(0);
 		
+		drawPostEffect(libBuffer, postEffects);
 
 
 		drawUI();
@@ -266,6 +313,23 @@ void drawUI() {
 		ImGui::SliderFloat("SepcularK", &material.Ks, 0.0f, 1.0f);
 		ImGui::SliderFloat("Shininess", &material.Shininess, 2.0f, 1024.0f);
 
+	}
+
+	if (ImGui::BeginCombo("Effect", post_processing_effects[effect_index].c_str()))
+	{
+		for (auto n = 0; n < post_processing_effects.size(); ++n)
+		{
+			auto is_selected = (post_processing_effects[effect_index] == post_processing_effects[n]);
+			if (ImGui::Selectable(post_processing_effects[n].c_str(), is_selected))
+			{
+				effect_index = n;
+			}
+			if (is_selected)
+			{
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+		ImGui::EndCombo();
 	}
 	
 	ImGui::End();
