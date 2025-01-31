@@ -3,6 +3,10 @@
 #include <stdio.h>
 namespace wm
 {
+	enum DepthType
+	{
+		RENDER_BUFFER,TEXTURE
+	};
 	struct FrameBuffer
 	{
 		unsigned int fbo;
@@ -12,5 +16,5 @@ namespace wm
 		unsigned int hight;
 	};
 	
-	FrameBuffer createFrameBuffer(unsigned int width, unsigned int hight, unsigned int colorFormat);
+	FrameBuffer createFrameBuffer(unsigned int width, unsigned int hight, unsigned int colorFormat, DepthType type = RENDER_BUFFER);
 }

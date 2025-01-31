@@ -101,6 +101,7 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 	glCullFace(GL_BACK);
 
 	glEnable(GL_DEPTH_TEST);
+	//glDepthFunc(GL_ALWAYS);
 
 	//create a gfx pass
 	glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
@@ -205,11 +206,12 @@ int main() {
 	ew::Shader grayScale = ew::Shader("assets/inverse.vert", "assets/grayScale.frag");
 	ew::Shader blur = ew::Shader("assets/blur.vert", "assets/blur.frag");
 	ew::Shader chrom = ew::Shader("assets/chromatic.vert", "assets/chromatic.frag");
+	ew::Shader crt = ew::Shader("assets/Fog.vert", "assets/Fog.frag");
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 
 	std::vector<ew::Shader> postEffects =
 	{
-		full, grayScale, blur, inverse, chrom, full
+		full, grayScale, blur, inverse, chrom, crt
 	};
 	
 
@@ -243,7 +245,7 @@ int main() {
 	//brickTexture = ew::loadTexture("assets/brick_color.jpg");
 	
 	//lib buffer
-	libBuffer = wm::createFrameBuffer(800, 600, GL_RGB);
+	libBuffer = wm::createFrameBuffer(800, 600, GL_RGB, wm::TEXTURE);
 
 	//buffer code
 	glGenFramebuffers(1, &buffer.fbo);

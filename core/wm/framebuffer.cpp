@@ -3,10 +3,12 @@
 
 namespace wm
 {
-	wm::FrameBuffer wm::createFrameBuffer(unsigned int width, unsigned int hight, GLuint colorFormat)
+	FrameBuffer createFrameBuffer(unsigned int width, unsigned int hight, GLuint colorFormat, DepthType type)
 	{
 
 		wm::FrameBuffer buffer;
+		buffer.width = width;
+		buffer.hight = hight;
 
 		//buffer code
 		glGenFramebuffers(1, &buffer.fbo);
@@ -22,16 +24,30 @@ namespace wm
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 
-		//create depth
-		glGenRenderbuffers(1, &buffer.depthBuffer);
+		if (type == RENDER_BUFFER)
+		{
+			//create depth
+			glGenRenderbuffers(1, &buffer.depthBuffer);
 
-		glBindRenderbuffer(GL_RENDERBUFFER, buffer.depthBuffer);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, hight);
-		glBindRenderbuffer(GL_RENDERBUFFER, 0);
+			glBindRenderbuffer(GL_RENDERBUFFER, buffer.depthBuffer);
+			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, hight);
+			glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer.colorBuffer[0], 0);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer.depthBuffer);
+			
+			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer.depthBuffer);
+		}
+		else if (type == TEXTURE)
+		{
+			glGenTextures(1, &buffer.depthBuffer);
+
+			glBindTexture(GL_TEXTURE_2D, buffer.depthBuffer);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, hight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, buffer.depthBuffer, 0);
+		}
 		
+		//attach buffers	
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer.colorBuffer[0], 0);
 
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		{
