@@ -144,6 +144,11 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 }
 void drawPostEffect(wm::FrameBuffer buffer, std::vector<ew::Shader> postList)
 {
+	glBindVertexArray(fullscreenQuad.vao);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer[0]);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, buffer.depthBuffer);
 
 	switch (effect_index)
 	{
@@ -166,6 +171,7 @@ void drawPostEffect(wm::FrameBuffer buffer, std::vector<ew::Shader> postList)
 	case 5:
 		postList[5].use();
 		postList[5].setInt("tex", 0);
+		postList[5].setInt("depthTex", 1);
 		break;
 	default:
 		postList[0].use();
@@ -175,9 +181,7 @@ void drawPostEffect(wm::FrameBuffer buffer, std::vector<ew::Shader> postList)
 	//shader.use();
 	
 
-	glBindVertexArray(fullscreenQuad.vao);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer[0]);
+	
 
 
 	glDrawArrays(GL_TRIANGLES, 0, 6);
