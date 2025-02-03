@@ -34,6 +34,7 @@ static std::vector<std::string> post_processing_effects = {
 	"Kernel Blur",
 	"Inverse",
 	"Chromatic Aberration",
+	"Edge Detection",
 	"CRT",
 };
 
@@ -171,7 +172,11 @@ void drawPostEffect(wm::FrameBuffer buffer, std::vector<ew::Shader> postList)
 	case 5:
 		postList[5].use();
 		postList[5].setInt("tex", 0);
-		postList[5].setInt("depthTex", 1);
+		break;
+	case 6:
+		postList[6].use();
+		postList[6].setInt("tex", 0);
+		postList[6].setInt("depthTex", 1);
 		break;
 	default:
 		postList[0].use();
@@ -209,13 +214,14 @@ int main() {
 	ew::Shader inverse = ew::Shader("assets/inverse.vert", "assets/inverse.frag");
 	ew::Shader grayScale = ew::Shader("assets/inverse.vert", "assets/grayScale.frag");
 	ew::Shader blur = ew::Shader("assets/blur.vert", "assets/blur.frag");
+	ew::Shader edge = ew::Shader("assets/Edge.vert", "assets/Edge.frag");
 	ew::Shader chrom = ew::Shader("assets/chromatic.vert", "assets/chromatic.frag");
 	ew::Shader crt = ew::Shader("assets/Fog.vert", "assets/Fog.frag");
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 
 	std::vector<ew::Shader> postEffects =
 	{
-		full, grayScale, blur, inverse, chrom, crt
+		full, grayScale, blur, inverse, chrom, edge, crt
 	};
 	
 
