@@ -50,7 +50,6 @@ GLuint brickTexture;
 GLuint normalMapping;
 
 
-
 struct FullscreenQuad
 {
 	GLuint vao;
@@ -67,6 +66,8 @@ struct Material
 	float Shininess = 128;
 }material;
 
+float exposure = 5.0f;
+
 struct Framebuffer
 {
 	GLuint fbo;
@@ -78,6 +79,9 @@ struct Framebuffer
 };
 
 wm::FrameBuffer libBuffer;
+wm::FrameBuffer HDRbuffer;
+
+wm::FrameBuffer testBuffer;
 
 Framebuffer buffer;
 
@@ -105,7 +109,8 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 	//glDepthFunc(GL_ALWAYS);
 
 	//create a gfx pass
-	glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
+	//glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//texture
@@ -143,6 +148,44 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 	//unbind buffer
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
+
+void pingpongRender(ew::Shader& shader, wm::FrameBuffer buffers[2])
+{
+	glBindVertexArray(fullscreenQuad.vao);
+	for (int i = 0; i <= 5; i++)
+	{
+		int drawIndex= 0;
+		int sampleIndex = 0;
+
+		//is even so draw odd
+		if (i % 2 == 0) 
+		{
+			drawIndex = 1;
+			sampleIndex = 0;
+			
+		}
+
+		glBindFramebuffer(GL_FRAMEBUFFER, buffers[drawIndex].fbo);
+
+
+		//texture
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, buffers[sampleIndex].colorBuffer[0]);
+
+		shader.use();
+
+		shader.setInt("tex", 0);
+
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		
+
+	}
+
+	//unbind buffer
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void drawPostEffect(wm::FrameBuffer buffer, std::vector<ew::Shader> postList)
 {
 	glBindVertexArray(fullscreenQuad.vao);
@@ -156,6 +199,7 @@ void drawPostEffect(wm::FrameBuffer buffer, std::vector<ew::Shader> postList)
 	case 1:
 		postList[1].use();
 		postList[1].setInt("tex", 0);
+		
 		break;
 	case 2:
 		postList[2].use();
@@ -181,14 +225,11 @@ void drawPostEffect(wm::FrameBuffer buffer, std::vector<ew::Shader> postList)
 	default:
 		postList[0].use();
 		postList[0].setInt("tex", 0);
+		postList[0].setFloat("exposure", exposure);
 		break;
 	}
 	//shader.use();
 	
-
-	
-
-
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 
 	glBindVertexArray(0);
@@ -208,6 +249,8 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
 	//chache 
+	wm::FrameBuffer pingpong[2] = { wm::createFrameBuffer(800, 600, GL_RGB, wm::TEXTURE), wm::createFrameBuffer(800, 600, GL_RGB, wm::TEXTURE) };
+	
 	
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
 	ew::Shader full = ew::Shader("assets/blin.vert", "assets/blin.frag");
@@ -217,11 +260,12 @@ int main() {
 	ew::Shader edge = ew::Shader("assets/Edge.vert", "assets/Edge.frag");
 	ew::Shader chrom = ew::Shader("assets/chromatic.vert", "assets/chromatic.frag");
 	ew::Shader crt = ew::Shader("assets/Fog.vert", "assets/Fog.frag");
+	ew::Shader HDR = ew::Shader("assets/hdr.vert", "assets/hdr.frag");
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 
 	std::vector<ew::Shader> postEffects =
 	{
-		full, grayScale, blur, inverse, chrom, edge, crt
+		HDR, grayScale, blur, inverse, chrom, edge, crt
 	};
 	
 
@@ -255,7 +299,9 @@ int main() {
 	//brickTexture = ew::loadTexture("assets/brick_color.jpg");
 	
 	//lib buffer
-	libBuffer = wm::createFrameBuffer(800, 600, GL_RGB, wm::TEXTURE);
+	//libBuffer = wm::createFrameBuffer(800, 600, GL_RGB, wm::TEXTURE);
+	//HDRbuffer = wm::createHDR_FramBuffer(800, 600);
+	libBuffer = wm::createHDR_FramBuffer(800, 600);
 
 	//buffer code
 	glGenFramebuffers(1, &buffer.fbo);
@@ -289,13 +335,25 @@ int main() {
 
 		renderMonekey(shader, model, window);
 
+		pingpong[0].colorBuffer[0] = libBuffer.colorBuffer[1];
+		
+		//pingpong[1].colorBuffer[0] = libBuffer.colorBuffer[1];
+		
+
+
+
+		glDisable(GL_DEPTH_TEST);
+		pingpongRender(blur, pingpong);
+
+
+		testBuffer.colorBuffer[0] = pingpong[0].colorBuffer[0];
+
+
 		glDisable(GL_DEPTH_TEST);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		
-		drawPostEffect(libBuffer, postEffects);
-
+		drawPostEffect(pingpong[0], postEffects);
 
 		drawUI();
 		
@@ -314,6 +372,8 @@ void drawUI() {
 	ImGui::Begin("Settings");
 	ImGui::Text("Add Controls Here!");
 	ImGui::Image((ImTextureID)(intptr_t)libBuffer.colorBuffer[0], ImVec2(800, 600));
+	ImGui::Image((ImTextureID)(intptr_t)libBuffer.colorBuffer[1], ImVec2(800, 600));
+	ImGui::Image((ImTextureID)(intptr_t)testBuffer.colorBuffer[0], ImVec2(800, 600));
 	if (ImGui::Button("Reset Camera"))
 	{
 		resetCamera(&camera, &controller);
@@ -326,6 +386,7 @@ void drawUI() {
 		ImGui::SliderFloat("Shininess", &material.Shininess, 2.0f, 1024.0f);
 
 	}
+	ImGui::SliderFloat("exposure", &exposure, 0.0f, 10.f);
 
 	if (ImGui::BeginCombo("Effect", post_processing_effects[effect_index].c_str()))
 	{

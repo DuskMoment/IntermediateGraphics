@@ -17,4 +17,5 @@ namespace wm
 	};
 	
 	FrameBuffer createFrameBuffer(unsigned int width, unsigned int hight, unsigned int colorFormat, DepthType type = RENDER_BUFFER);
+	FrameBuffer createHDR_FramBuffer(unsigned int width, unsigned int hight);
 }

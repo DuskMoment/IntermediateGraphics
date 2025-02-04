@@ -1,6 +1,8 @@
 #version 450
+layout(location = 0) out vec4 fragColor0;
+layout(location = 1) out vec4 fragBrightness;
 
-out vec4 FragColor; //the color of the fragment Shader
+//out vec4 FragColor; //the color of the fragment Shader
 
 in Surface{
 	vec3 WorldPos;
@@ -26,12 +28,13 @@ uniform sampler2D _NormalMap;
 
 //light uniforms
 uniform vec3 _LightDirection = vec3(0.0, -1.0,0.0);
-uniform vec3 _LightColor = vec3(1.0);
+uniform vec3 _LightColor = vec3(100.0);
 uniform vec3 _AmbientColor = vec3(0.3,0.4,0.46);
 
 //camera uniforms
 uniform vec3 _EyePos;
 
+uniform float brightness_threshold;
 void main()
 {
 	//load normal map
@@ -60,6 +63,21 @@ void main()
 
 	vec3 objectColor = texture(_MainTex,fs_in.TexCoord).rgb;
 
-	FragColor = vec4(objectColor * lightColor, 1.0);
+	fragColor0 = vec4(objectColor * lightColor, 1.0);
 	//FragColor = vec4(0.0);
+
+	//check bightness
+	float brightness  = dot(fragColor0.rgb, vec3(0.2126, 0.7152, 0.0722));
+
+	if(brightness > 1.0)
+	{
+		fragBrightness = fragColor0;
+
+	}
+	else
+	{
+		fragBrightness = vec4(0.0);
+	}
+
+
 }
