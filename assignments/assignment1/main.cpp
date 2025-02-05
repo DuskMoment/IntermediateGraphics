@@ -149,40 +149,39 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void pingpongRender(ew::Shader& shader, wm::FrameBuffer buffers[2])
+void pingpongRender(ew::Shader& shader, wm::FrameBuffer sample, wm::FrameBuffer* buffers)
 {
+	int numLoopTimes = 5;
 	glBindVertexArray(fullscreenQuad.vao);
-	for (int i = 0; i <= 5; i++)
+
+	//prime one ping pong buffer
+
+	glBindFramebuffer(GL_FRAMEBUFFER, buffers[0].fbo);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, sample.colorBuffer[1]);
+
+	shader.use();
+	shader.setInt("tex", 0);
+
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+	bool bufferSwap = true;
+	for (int i = 0; i < numLoopTimes; i++)
 	{
-		int drawIndex= 0;
-		int sampleIndex = 0;
+		glBindFramebuffer(GL_FRAMEBUFFER, buffers[bufferSwap].fbo);
 
-		//is even so draw odd
-		if (i % 2 == 0) 
-		{
-			drawIndex = 1;
-			sampleIndex = 0;
-			
-		}
-
-		glBindFramebuffer(GL_FRAMEBUFFER, buffers[drawIndex].fbo);
-
-
-		//texture
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, buffers[sampleIndex].colorBuffer[0]);
-
-		shader.use();
+		glBindTexture(GL_TEXTURE_2D, buffers[!bufferSwap].colorBuffer[0]);
 
 		shader.setInt("tex", 0);
 
 		glDrawArrays(GL_TRIANGLES, 0, 6);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		
 
+		bufferSwap = !bufferSwap;
 	}
 
-	//unbind buffer
+	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -249,7 +248,7 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
 	//chache 
-	wm::FrameBuffer pingpong[2] = { wm::createFrameBuffer(800, 600, GL_RGB, wm::TEXTURE), wm::createFrameBuffer(800, 600, GL_RGB, wm::TEXTURE) };
+	wm::FrameBuffer pingpong[2] = { wm::createFrameBuffer(screenWidth, screenHeight, GL_RGB, wm::TEXTURE), wm::createFrameBuffer(screenWidth, screenHeight, GL_RGB, wm::TEXTURE) };
 	
 	
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
@@ -301,7 +300,7 @@ int main() {
 	//lib buffer
 	//libBuffer = wm::createFrameBuffer(800, 600, GL_RGB, wm::TEXTURE);
 	//HDRbuffer = wm::createHDR_FramBuffer(800, 600);
-	libBuffer = wm::createHDR_FramBuffer(800, 600);
+	libBuffer = wm::createHDR_FramBuffer(screenWidth, screenHeight);
 
 	//buffer code
 	glGenFramebuffers(1, &buffer.fbo);
@@ -335,25 +334,43 @@ int main() {
 
 		renderMonekey(shader, model, window);
 
-		pingpong[0].colorBuffer[0] = libBuffer.colorBuffer[1];
-		
-		//pingpong[1].colorBuffer[0] = libBuffer.colorBuffer[1];
-		
-
-
 
 		glDisable(GL_DEPTH_TEST);
-		pingpongRender(blur, pingpong);
+
+		pingpongRender(blur, libBuffer, pingpong);
+
+		//TESING CODE
+
+		//pingpong[0].colorBuffer[0] = libBuffer.colorBuffer[1];
+
+		
+		/*blur.use();
+
+		glBindFramebuffer(GL_FRAMEBUFFER, pingpong[0].fbo);
+
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, libBuffer.colorBuffer[1]);
+
+		blur.setInt("tex", 0);
+
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 
-		testBuffer.colorBuffer[0] = pingpong[0].colorBuffer[0];
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
 
+
+		testBuffer = pingpong[0];
+
+		//TESTING END
 
 		glDisable(GL_DEPTH_TEST);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		drawPostEffect(pingpong[0], postEffects);
+		drawPostEffect(libBuffer, postEffects);
 
 		drawUI();
 		

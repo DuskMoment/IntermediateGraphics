@@ -4,6 +4,7 @@ out vec4 FragColor;
 in vec2 vs_texCoords; //the color of the fragment Shader
 
 uniform sampler2D tex;
+
 const float offset = 1.0/300.0;
 const vec2 offsets[9] = vec2[]
 (
