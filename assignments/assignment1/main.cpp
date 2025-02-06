@@ -31,13 +31,23 @@ static int effect_index = 0;
 static std::vector<std::string> post_processing_effects = {
 	"None",
 	"Grayscale",
-	"Kernel Blur",
+	"Kernel Blur", //add intesisty
 	"Inverse",
-	"Chromatic Aberration",
-	"Edge Detection",
-	"CRT",
+	"Chromatic Aberration", //add offsets
+	"Edge Detection",//add intestity
+	"Fog", //add intesity stuff
+	"Bloom",
+	"HDR",
+	"Vignette", //TODO
+	"Lens distortion", //TODO
+	"Film grain", //TODO
+	"Box blur", //TODO
+	"Sharpen"//TODO
+
+
 };
 
+glm::vec3 lightBrightness = glm::vec3(1.0);
 //camera
 ew::Camera camera;
 ew::CameraController controller;
@@ -82,6 +92,8 @@ wm::FrameBuffer libBuffer;
 wm::FrameBuffer HDRbuffer;
 
 wm::FrameBuffer testBuffer;
+
+wm::FrameBuffer pingpong[2];
 
 Framebuffer buffer;
 
@@ -136,6 +148,7 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 	shader.setFloat("_Material.Kd", material.Kd);
 	shader.setFloat("_Material.Ks", material.Ks);
 	shader.setFloat("_Material.Shininess", material.Shininess);
+	shader.setVec3("_LightColor", lightBrightness);
 
 	//textures
 	shader.setInt("_MainTex", 0);
@@ -192,6 +205,12 @@ void drawPostEffect(wm::FrameBuffer buffer, std::vector<ew::Shader> postList)
 	glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer[0]);
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, buffer.depthBuffer);
+	//hdr texture
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer[1]);
+	//bloomTexutre
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, pingpong[1].colorBuffer[0]);
 
 	switch (effect_index)
 	{
@@ -221,10 +240,21 @@ void drawPostEffect(wm::FrameBuffer buffer, std::vector<ew::Shader> postList)
 		postList[6].setInt("tex", 0);
 		postList[6].setInt("depthTex", 1);
 		break;
+	case 7:
+		postList[7].use();
+		postList[7].setFloat("exposure", exposure);
+		postList[7].setInt("bloomBlur", 4);
+		postList[7].setInt("tex", 3);
+		break;
+	case 8:
+		postList[8].use();
+		postList[8].setInt("tex", 0);
+		postList[8].setFloat("exposure", exposure);
+		postList[8].setInt("tex", 3);
+		break;
 	default:
 		postList[0].use();
 		postList[0].setInt("tex", 0);
-		postList[0].setFloat("exposure", exposure);
 		break;
 	}
 	//shader.use();
@@ -248,7 +278,6 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
 	//chache 
-	wm::FrameBuffer pingpong[2] = { wm::createFrameBuffer(screenWidth, screenHeight, GL_RGB, wm::TEXTURE), wm::createFrameBuffer(screenWidth, screenHeight, GL_RGB, wm::TEXTURE) };
 	
 	
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
@@ -260,11 +289,13 @@ int main() {
 	ew::Shader chrom = ew::Shader("assets/chromatic.vert", "assets/chromatic.frag");
 	ew::Shader crt = ew::Shader("assets/Fog.vert", "assets/Fog.frag");
 	ew::Shader HDR = ew::Shader("assets/hdr.vert", "assets/hdr.frag");
+	ew::Shader blend = ew::Shader("assets/blend.vert", "assets/blend.frag");
+
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 
 	std::vector<ew::Shader> postEffects =
 	{
-		HDR, grayScale, blur, inverse, chrom, edge, crt
+		full, grayScale, blur, inverse, chrom, edge, crt, blend, HDR
 	};
 	
 
@@ -301,6 +332,8 @@ int main() {
 	//libBuffer = wm::createFrameBuffer(800, 600, GL_RGB, wm::TEXTURE);
 	//HDRbuffer = wm::createHDR_FramBuffer(800, 600);
 	libBuffer = wm::createHDR_FramBuffer(screenWidth, screenHeight);
+	pingpong[0] = wm::createFrameBuffer(screenWidth, screenHeight, GL_RGB, wm::TEXTURE);
+	pingpong[1] = wm::createFrameBuffer(screenWidth, screenHeight, GL_RGB, wm::TEXTURE);
 
 	//buffer code
 	glGenFramebuffers(1, &buffer.fbo);
@@ -404,6 +437,15 @@ void drawUI() {
 
 	}
 	ImGui::SliderFloat("exposure", &exposure, 0.0f, 10.f);
+
+	if (ImGui::CollapsingHeader("Light Prop"))
+	{
+		ImGui::SliderFloat("LightBrightness.x", &lightBrightness.x, 0.0f, 100.0f);
+		ImGui::SliderFloat("LightBrightness.y", &lightBrightness.y, 0.0f, 100.0f);
+		ImGui::SliderFloat("LightBrightness.z", &lightBrightness.z, 0.0f, 100.0f);
+	}
+	
+
 
 	if (ImGui::BeginCombo("Effect", post_processing_effects[effect_index].c_str()))
 	{
