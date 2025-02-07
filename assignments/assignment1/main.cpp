@@ -15,6 +15,7 @@
 #include <ew/transform.h>
 #include <ew/texture.h>
 #include <wm/framebuffer.h>
+#include <wm/FrameBufferControls.h>
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
@@ -96,6 +97,8 @@ wm::FrameBuffer testBuffer;
 wm::FrameBuffer pingpong[2];
 
 Framebuffer buffer;
+
+std::vector<wm::ImGuiSetting*> settings;
 
 static float quad_vertices[] = {
 	// pos (x, y) texcoord (u, v)
@@ -214,44 +217,62 @@ void drawPostEffect(wm::FrameBuffer buffer, std::vector<ew::Shader> postList)
 
 	switch (effect_index)
 	{
+		//gray scale
 	case 1:
 		postList[1].use();
 		postList[1].setInt("tex", 0);
-		
+		postList[1].setFloat("intensity", 
+			static_cast<wm::GrayScaleSettings*>(settings[wm::GRAY_SCALE])->intensity);
 		break;
+		//kernnel blur
 	case 2:
 		postList[2].use();
 		postList[2].setInt("tex", 0);
 		break;
 	case 3:
+		//inverse
 		postList[3].use();
 		postList[3].setInt("tex", 0);
+		
 		break;
+		//ChromaticAberrationSettings
 	case 4:
 		postList[4].use();
 		postList[4].setInt("tex", 0);
+		postList[4].setFloat("offsetR", static_cast<wm::ChromaticAberrationSettings*>(settings[wm::CHROMATIC_ABERRATION])->offsetRed);
+		postList[4].setFloat("offsetG", static_cast<wm::ChromaticAberrationSettings*>(settings[wm::CHROMATIC_ABERRATION])->offsetGreen);
+		postList[4].setFloat("offsetB", static_cast<wm::ChromaticAberrationSettings*>(settings[wm::CHROMATIC_ABERRATION])->offsetBlue);
 		break;
+		//edge detection
 	case 5:
 		postList[5].use();
 		postList[5].setInt("tex", 0);
+		postList[5].setFloat("strenght", static_cast<wm::EdgeDetectionSettings*>(settings[wm::EDGE_DETECTION])->intensity);
 		break;
+		//fog
 	case 6:
 		postList[6].use();
 		postList[6].setInt("tex", 0);
 		postList[6].setInt("depthTex", 1);
+		postList[6].setFloat("_stepness", static_cast<wm::FogSettings*>(settings[wm::FOG])->stepness);
+		postList[6].setFloat("_offset", static_cast<wm::FogSettings*>(settings[wm::FOG])->offset);
 		break;
+		//bloom
 	case 7:
 		postList[7].use();
-		postList[7].setFloat("exposure", exposure);
+		postList[7].setFloat("exposure", static_cast<wm::BloomSettings*>(settings[wm::BLOOM])->exposure);
 		postList[7].setInt("bloomBlur", 4);
-		postList[7].setInt("tex", 3);
+		postList[7].setInt("hrdTexture", 3);
+		postList[7].setInt("tex", 0);
 		break;
 	case 8:
+		//hdr
 		postList[8].use();
-		postList[8].setInt("tex", 0);
-		postList[8].setFloat("exposure", exposure);
 		postList[8].setInt("tex", 3);
+		postList[8].setFloat("exposure", static_cast<wm::HDRSettings*>(settings[wm::HDR])->exposure);
+		//postList[8].setInt("tex", 3);
 		break;
+		
 	default:
 		postList[0].use();
 		postList[0].setInt("tex", 0);
@@ -278,7 +299,7 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
 	//chache 
-	
+	settings = wm::createSettingsList();
 	
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
 	ew::Shader full = ew::Shader("assets/blin.vert", "assets/blin.frag");
@@ -436,7 +457,7 @@ void drawUI() {
 		ImGui::SliderFloat("Shininess", &material.Shininess, 2.0f, 1024.0f);
 
 	}
-	ImGui::SliderFloat("exposure", &exposure, 0.0f, 10.f);
+	ImGui::SliderFloat("exposure", &exposure, 1.0f, 10.f);
 
 	if (ImGui::CollapsingHeader("Light Prop"))
 	{
@@ -445,6 +466,7 @@ void drawUI() {
 		ImGui::SliderFloat("LightBrightness.z", &lightBrightness.z, 0.0f, 100.0f);
 	}
 	
+	settings[effect_index]->drawSettings();
 
 
 	if (ImGui::BeginCombo("Effect", post_processing_effects[effect_index].c_str()))

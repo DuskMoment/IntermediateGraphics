@@ -5,9 +5,11 @@ in vec2 vs_texCoords; //the color of the fragment Shader
 
 uniform sampler2D tex;
 
+uniform float offsetR;
+uniform float offsetG;
+uniform float offsetB;
 
-
-const vec3 offset = vec3(0.009,0.006,-0.006);
+const vec3 offset = vec3(offsetR, offsetG, offsetB);
 const vec2 direction = vec2(1.0);
 
 void main()

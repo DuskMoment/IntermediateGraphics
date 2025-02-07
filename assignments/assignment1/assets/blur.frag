@@ -27,6 +27,7 @@ const float kernal[9] = float[](
 1.0,2.0,1.0
 );
 
+uniform float intensity;
 void main()
 {
 	vec3 avr = vec3(0.0);
@@ -38,7 +39,8 @@ void main()
 	}
 
 	vec3 ablito = texture(tex, vs_texCoords).rgb;
-	
+
+
 	FragColor = vec4(vec3(avr), 1.0);
 
 }
