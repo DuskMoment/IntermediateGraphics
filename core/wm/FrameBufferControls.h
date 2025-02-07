@@ -159,13 +159,16 @@ namespace wm
 	public:
 
 		float intensity = 1.0f;
+		glm::vec3 radial = glm::vec3(1.0f);
+		glm::vec2 tangent = glm::vec3(1.0f);
 
 		virtual void drawSettings() override
 		{
 			if (ImGui::CollapsingHeader("LensDistortion Settings"))
 			{
 				ImGui::SliderFloat("intesity", &intensity, 1.0f, 10.f);
-
+				ImGui::SliderFloat3("radial distortion", &radial.x, 1.0f, 100.0f);
+				ImGui::SliderFloat2("tangent distortion", &tangent.x, 1.0f, 100.0f);
 			}
 		};
 	};
@@ -175,6 +178,7 @@ namespace wm
 	public:
 
 		float intensity = 1.0f;
+		float time;
 
 		virtual void drawSettings() override
 		{
@@ -239,7 +243,8 @@ namespace wm
 		settings.push_back(new VignetteSettings());
 		settings.push_back(new LensDistortionSettings());
 		settings.push_back(new FilmGrainSettings());
-		settings.push_back(new SharpenSettings());
+		settings.push_back(new ImGuiSetting());
+		settings.push_back(new ImGuiSetting());
 
 		return settings;
 

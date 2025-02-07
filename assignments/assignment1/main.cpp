@@ -39,16 +39,21 @@ static std::vector<std::string> post_processing_effects = {
 	"Fog", //add intesity stuff
 	"Bloom",
 	"HDR",
-	"Vignette", //TODO
-	"Lens distortion", //TODO
-	"Film grain", //TODO
+	"Vignette", 
+	"Lens distortion",
+	"Film grain", 
 	"Box blur", //TODO
 	"Sharpen"//TODO
 
 
 };
 
+//backround color
+glm::vec3 backroundColor = glm::vec3(0.0f, 0.0f, 0.0f);
+
+//light
 glm::vec3 lightBrightness = glm::vec3(1.0);
+
 //camera
 ew::Camera camera;
 ew::CameraController controller;
@@ -91,9 +96,7 @@ struct Framebuffer
 
 wm::FrameBuffer libBuffer;
 wm::FrameBuffer HDRbuffer;
-
 wm::FrameBuffer testBuffer;
-
 wm::FrameBuffer pingpong[2];
 
 Framebuffer buffer;
@@ -124,8 +127,8 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 	//glDepthFunc(GL_ALWAYS);
 
 	//create a gfx pass
-	//glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClearColor(backroundColor.x, backroundColor.y, backroundColor.z, 1.0f);
+	//glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//texture
@@ -272,7 +275,34 @@ void drawPostEffect(wm::FrameBuffer buffer, std::vector<ew::Shader> postList)
 		postList[8].setFloat("exposure", static_cast<wm::HDRSettings*>(settings[wm::HDR])->exposure);
 		//postList[8].setInt("tex", 3);
 		break;
-		
+		//Vingnette 
+	case 9:
+		//this is done so you can see the effect better
+		backroundColor = glm::vec3(0.6f, 0.8f, 0.92f);
+		postList[9].use();
+		postList[9].setInt("tex", 0);
+		postList[9].setFloat("intesity", static_cast<wm::VignetteSettings*>(settings[wm::VIGNETTE])->intensity);
+		break;
+	case 10:
+		postList[10].use();
+		postList[10].setInt("tex", 0);
+		postList[10].setVec3("radialDefault", static_cast<wm::LensDistortionSettings*>(settings[wm::LENS_DISTORTION])->radial);
+		postList[10].setVec2("tangentDefault", static_cast<wm::LensDistortionSettings*>(settings[wm::LENS_DISTORTION])->tangent);
+		break;
+	case 11:
+		postList[11].use();
+		postList[11].setInt("tex", 0);
+		//postList[11].setFloat("time", static_cast<wm::FilmGrainSettings*>(settings[wm::FILM_GRAIN])->time);
+		postList[11].setFloat("intesity", static_cast<wm::FilmGrainSettings*>(settings[wm::FILM_GRAIN])->intensity);
+		break;
+	case 12:
+		postList[12].use();
+		postList[12].setInt("tex", 0);
+		break;
+	case 13:
+		postList[13].use();
+		postList[13].setInt("tex", 0);
+		break;
 	default:
 		postList[0].use();
 		postList[0].setInt("tex", 0);
@@ -311,12 +341,17 @@ int main() {
 	ew::Shader crt = ew::Shader("assets/Fog.vert", "assets/Fog.frag");
 	ew::Shader HDR = ew::Shader("assets/hdr.vert", "assets/hdr.frag");
 	ew::Shader blend = ew::Shader("assets/blend.vert", "assets/blend.frag");
+	ew::Shader vin = ew::Shader("assets/Vignette.vert", "assets/Vignette.frag");
+	ew::Shader lens = ew::Shader("assets/LensDistortion.vert", "assets/LensDistortion.frag");
+	ew::Shader film = ew::Shader("assets/FilmGrain.vert", "assets/FilmGrain.frag");
+	ew::Shader box = ew::Shader("assets/boxBlur.vert", "assets/boxBlur.frag");
+	ew::Shader sharp = ew::Shader("assets/sharp.vert", "assets/sharp.frag");
 
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 
 	std::vector<ew::Shader> postEffects =
 	{
-		full, grayScale, blur, inverse, chrom, edge, crt, blend, HDR
+		full, grayScale, blur, inverse, chrom, edge, crt, blend, HDR, vin, lens, film, box, sharp
 	};
 	
 
@@ -385,6 +420,8 @@ int main() {
 		deltaTime = time - prevFrameTime;
 		prevFrameTime = time;
 
+		//used for the film grain
+		static_cast<wm::FilmGrainSettings*>(settings[wm::FILM_GRAIN])->time = time;
 
 		renderMonekey(shader, model, window);
 
@@ -457,6 +494,7 @@ void drawUI() {
 		ImGui::SliderFloat("Shininess", &material.Shininess, 2.0f, 1024.0f);
 
 	}
+	ImGui::SliderFloat3("Backround Color", &backroundColor.x,0.0f, 1.0f);
 	ImGui::SliderFloat("exposure", &exposure, 1.0f, 10.f);
 
 	if (ImGui::CollapsingHeader("Light Prop"))
