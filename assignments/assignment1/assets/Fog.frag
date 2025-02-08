@@ -1,5 +1,5 @@
 #version 450
-
+//https://www.youtube.com/watch?v=3xGKu4T4SCU
 out vec4 FragColor;
 in vec2 vs_texCoords; //the color of the fragment Shader
 
