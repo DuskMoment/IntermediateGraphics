@@ -32,18 +32,18 @@ static int effect_index = 0;
 static std::vector<std::string> post_processing_effects = {
 	"None",
 	"Grayscale",
-	"Kernel Blur", //add intesisty
+	"Gaussian Blur",
 	"Inverse",
-	"Chromatic Aberration", //add offsets
-	"Edge Detection",//add intestity
-	"Fog", //add intesity stuff
+	"Chromatic Aberration", 
+	"Edge Detection",
+	"Fog", 
 	"Bloom",
 	"HDR",
 	"Vignette", 
 	"Lens distortion",
 	"Film grain", 
-	"Box blur", //TODO
-	"Sharpen"//TODO
+	"Box blur",
+	"Sharpen"
 
 
 };
@@ -84,22 +84,10 @@ struct Material
 
 float exposure = 5.0f;
 
-struct Framebuffer
-{
-	GLuint fbo;
-	GLuint color0;
-	GLuint color1;
-	GLuint color2;
-	GLuint depth;
-
-};
-
 wm::FrameBuffer libBuffer;
 wm::FrameBuffer HDRbuffer;
 wm::FrameBuffer testBuffer;
 wm::FrameBuffer pingpong[2];
-
-Framebuffer buffer;
 
 std::vector<wm::ImGuiSetting*> settings;
 
@@ -170,6 +158,9 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 
 void pingpongRender(ew::Shader& shader, wm::FrameBuffer sample, wm::FrameBuffer* buffers)
 {
+	
+	glDisable(GL_DEPTH_TEST);
+
 	int numLoopTimes = 5;
 	glBindVertexArray(fullscreenQuad.vao);
 
@@ -206,6 +197,11 @@ void pingpongRender(ew::Shader& shader, wm::FrameBuffer sample, wm::FrameBuffer*
 
 void drawPostEffect(wm::FrameBuffer buffer, std::vector<ew::Shader> postList)
 {
+	//set up gfx settigns
+	glDisable(GL_DEPTH_TEST);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+	//bind and set up defaults
 	glBindVertexArray(fullscreenQuad.vao);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer[0]);
@@ -331,6 +327,7 @@ int main() {
 	//chache 
 	settings = wm::createSettingsList();
 	
+	//shaders
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
 	ew::Shader full = ew::Shader("assets/blin.vert", "assets/blin.frag");
 	ew::Shader inverse = ew::Shader("assets/inverse.vert", "assets/inverse.frag");
@@ -347,8 +344,10 @@ int main() {
 	ew::Shader box = ew::Shader("assets/boxBlur.vert", "assets/boxBlur.frag");
 	ew::Shader sharp = ew::Shader("assets/sharp.vert", "assets/sharp.frag");
 
+	//model
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 
+	//list of post proecessing effects
 	std::vector<ew::Shader> postEffects =
 	{
 		full, grayScale, blur, inverse, chrom, edge, crt, blend, HDR, vin, lens, film, box, sharp
@@ -385,34 +384,11 @@ int main() {
 	//brickTexture = ew::loadTexture("assets/brick_color.jpg");
 	
 	//lib buffer
-	//libBuffer = wm::createFrameBuffer(800, 600, GL_RGB, wm::TEXTURE);
-	//HDRbuffer = wm::createHDR_FramBuffer(800, 600);
 	libBuffer = wm::createHDR_FramBuffer(screenWidth, screenHeight);
 	pingpong[0] = wm::createFrameBuffer(screenWidth, screenHeight, GL_RGB, wm::TEXTURE);
 	pingpong[1] = wm::createFrameBuffer(screenWidth, screenHeight, GL_RGB, wm::TEXTURE);
 
-	//buffer code
-	glGenFramebuffers(1, &buffer.fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, buffer.fbo);
-
-	glGenTextures(1, &buffer.color0);
-
-	glBindTexture(GL_TEXTURE_2D, buffer.color0);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer.color0, 0);
-
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-	{
-		printf("frame buffer is not complete!");
-		return 0;
-
-	}
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+	
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 
@@ -425,47 +401,15 @@ int main() {
 
 		renderMonekey(shader, model, window);
 
-
-		glDisable(GL_DEPTH_TEST);
-
 		pingpongRender(blur, libBuffer, pingpong);
-
-		//TESING CODE
-
-		//pingpong[0].colorBuffer[0] = libBuffer.colorBuffer[1];
-
 		
-		/*blur.use();
-
-		glBindFramebuffer(GL_FRAMEBUFFER, pingpong[0].fbo);
-
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, libBuffer.colorBuffer[1]);
-
-		blur.setInt("tex", 0);
-
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
-
-
+		//used to show a IMGUI Window
 		testBuffer = pingpong[0];
-
-		//TESTING END
-
-		glDisable(GL_DEPTH_TEST);
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
 
 		drawPostEffect(libBuffer, postEffects);
 
 		drawUI();
 		
-
 		glfwSwapBuffers(window);
 	}
 	printf("Shutting down...");

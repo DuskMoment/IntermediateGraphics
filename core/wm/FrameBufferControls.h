@@ -34,14 +34,14 @@ namespace wm
 		};
 	};
 
-	struct KernelBlurSettings : public ImGuiSetting
+	struct GaussianBlurSettings : public ImGuiSetting
 	{
 	public:
 		float intensity = 1.0f;
 
 		virtual void drawSettings() override
 		{
-			if (ImGui::CollapsingHeader("KernelBlur Settings"))
+			if (ImGui::CollapsingHeader("GaussianBlur Settings"))
 			{
 
 				ImGui::SliderFloat("intesity", &intensity, 1.0f, 10.f);
