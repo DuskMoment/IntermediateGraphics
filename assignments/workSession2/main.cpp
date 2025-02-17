@@ -259,6 +259,9 @@ int main() {
 		planeShader.setFloat("scale", debug.scale);
 		planeShader.setFloat("warp_scale", debug.warp_scale);
 		planeShader.setFloat("spec_scale", debug.spec_scale);
+		planeShader.setFloat("brightness_lower_cutoff", debug.lower_cutoff);
+		planeShader.setFloat("brightness_upper_cutoff", debug.upper_cutoff);
+
 		
 
 		plane.draw();
@@ -326,8 +329,8 @@ void drawUI() {
 	ImGui::SliderFloat("spec scale", &debug.spec_scale, 1.0f, 100.0f);
 	ImGui::SliderFloat("warp scale", &debug.warp_scale, 1.0f, 100.0f);
 
-	ImGui::SliderFloat("upper", &debug.upper_cutoff, 1.0f, 100.0f);
-	ImGui::SliderFloat("lower", &debug.lower_cutoff, 1.0f, 100.0f);
+	ImGui::SliderFloat("upper", &debug.upper_cutoff, 0.1f, 100.0f);
+	ImGui::SliderFloat("lower", &debug.lower_cutoff, 0.1f, 100.0f);
 	
 	ImGui::End();
 

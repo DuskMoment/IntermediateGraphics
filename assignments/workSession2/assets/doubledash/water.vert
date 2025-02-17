@@ -24,16 +24,16 @@ float calculateSurface(float x, float z) {
 }
 void main()
 {	
-	vec3 pos = in_Pos;
+	//vec3 pos = in_Pos;
 
-	pos += calculateSurface(in_Pos.x, in_Pos.z) * strenght;
+	//pos += calculateSurface(in_Pos.x, in_Pos.z) * strenght;
 	vec4 worldPos = model * vec4(in_Pos, 1.0);
 
 	vs_TexCoords = in_TexCoords;
 
 	to_cam = camera_pos - worldPos.xyz;
 
-	gl_Position = view_proj * model * vec4(pos, 1.0f);
+	gl_Position = view_proj * model * vec4(in_Pos, 1.0f);
 
 }
 
