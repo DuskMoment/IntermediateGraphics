@@ -55,6 +55,11 @@ struct Material
 	float Shininess = 128;
 }material;
 
+struct Light
+{
+	glm::vec3 lightDirection;
+	glm::vec3 lightColor = glm::vec3(1.0);
+}light;
 void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh plane, GLFWwindow* window)
 {
 	
@@ -123,6 +128,7 @@ int main() {
 	//chache 
 	
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
+	ew::Shader blin = ew::Shader("assets/blin.vert", "assets/blin.frag");
 
 	ew::Mesh plane = ew::createPlane(10, 10, 10);
 
@@ -144,16 +150,17 @@ int main() {
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
-
+		
+		
 		float time = (float)glfwGetTime();
 		deltaTime = time - prevFrameTime;
 		prevFrameTime = time;
-
+		
 		//RENDER
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		renderMonekey(shader, model, plane, window);
+		renderMonekey(blin, model, plane, window);
 
 		drawUI();
 		
