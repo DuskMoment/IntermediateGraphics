@@ -18,7 +18,9 @@
 
 #include<wm/framebuffer.h>
 
-;
+#include "glm/gtx/transform.hpp"
+
+
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
 void drawUI();
@@ -97,7 +99,7 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh plane, GLFWwin
 	model.draw();
 
 
-	shader.setMat4("_Model", glm::mat4(1.0));
+	shader.setMat4("_Model", glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)));
 	//draw plane
 	plane.draw();
 
