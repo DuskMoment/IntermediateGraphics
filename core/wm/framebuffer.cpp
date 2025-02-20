@@ -123,11 +123,7 @@ namespace wm
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, buffer.depthBuffer, 0);
-
-
-		
 
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		{
@@ -139,6 +135,40 @@ namespace wm
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		return buffer;
+	}
+
+	FrameBuffer createShadowBuffer(unsigned int shdw_width, unsigned int shdw_hight)
+	{
+		FrameBuffer buffer;
+
+		glGenFramebuffers(1, &buffer.fbo);
+		glBindFramebuffer(GL_FRAMEBUFFER, buffer.fbo);
+
+		//create and bind depth
+		glGenTextures(1, &buffer.depthBuffer);
+		glBindTexture(GL_TEXTURE_2D, buffer.depthBuffer);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+			shdw_width, shdw_hight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, buffer.depthBuffer, 0);
+		glDrawBuffer(GL_NONE);
+		glReadBuffer(GL_NONE);
+
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		{
+			printf("frame buffer is not complete!");
+			return FrameBuffer();
+
+		}
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		return buffer;
+
 	}
 }
 

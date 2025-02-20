@@ -7,6 +7,8 @@ in Surface{
 	vec3 WorldNormal;
 	vec2 TexCoord;
 	mat3 TBN;
+	vec4 fragPosLightSpace;
+
 }fs_in;
 
 struct Material{
@@ -23,6 +25,7 @@ uniform Material _Material;
 //texture uniforms
 uniform sampler2D _MainTex;
 uniform sampler2D _NormalMap;
+uniform sampler2D _ShadowMap;
 
 //light uniforms
 uniform vec3 _LightDirection = vec3(0.0, -1.0, 0.0);
@@ -32,9 +35,28 @@ uniform vec3 _AmbientColor = vec3(0.3,0.4,0.46);
 //camera uniforms
 uniform vec3 _EyePos;
 
-void main()
+
+float shadowCalcualtion(vec4 fragPosLightSpace)
 {
-	//load normal map
+	vec3 projCoords = fragPosLightSpace.xyz/fragPosLightSpace.w;
+
+	projCoords = projCoords * 0.5 + 0.5;
+
+	float closestDepth = texture(_ShadowMap, projCoords.xy).r;
+	float currentDepth = projCoords.z;
+
+	if(projCoords.z  <= 0.0 || projCoords.z > 1.0)
+	 {
+		return 0.0;
+	 }
+
+	float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
+
+	return shadow;
+}
+
+vec3 blinFong()
+{
 	
 	vec3 normal = normalize(fs_in.WorldNormal);
 	//normal = texture(_NormalMap, fs_in.TexCoord).rgb;
@@ -50,7 +72,7 @@ void main()
 
 	vec3 diffuseColor = _LightColor * diffuseFactor;
 
-	vec3 toEye = fs_in.TBN * normalize(_EyePos - fs_in.WorldPos);
+	vec3 toEye = normalize(_EyePos - fs_in.WorldPos);
 
 	//blinn phong
 	vec3 h = normalize(toLight + toEye);
@@ -60,10 +82,24 @@ void main()
 
 	//sumation equation
 	vec3 lightColor = (_Material.Kd * diffuseColor + _Material.Ks * specularFactor) * _LightColor;
-	lightColor += _AmbientColor * _Material.Ka;
+
+	//vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
+
+	return lightColor;
+}
+void main()
+{
+	
+	vec3 lightColor = blinFong();
 
 	vec3 objectColor = texture(_MainTex,fs_in.TexCoord).rgb;
 
-	FragColor = vec4(objectColor * lightColor, 1.0);
+	float shadow = shadowCalcualtion(fs_in.fragPosLightSpace);
+
+	//_Light.color * ((_Material.ambientK + (1.0 - shadow) * lighting) * objectColor);
+
+	vec3 finalColor = ((_AmbientColor * _Material.Ka) + (1.0 - shadow) * lightColor )* objectColor;
+
+	FragColor = vec4(finalColor, 1.0);
 	//FragColor = vec4(0.0);
 }

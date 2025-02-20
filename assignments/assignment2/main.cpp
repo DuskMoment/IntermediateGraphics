@@ -57,12 +57,32 @@ struct Material
 
 struct Light
 {
-	glm::vec3 lightDirection;
+	glm::vec3 lightDirection = glm::vec3(0.0, -1.0, 0.0);
 	glm::vec3 lightColor = glm::vec3(1.0);
+
 }light;
-void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh plane, GLFWwindow* window)
+
+void renderMonekey(ew::Shader& shader, ew::Shader& shadowMapShdr, glm::mat4 lightMat, ew::Model& model, ew::Mesh plane, GLFWwindow* window)
 {
+	modelTrans.rotation = glm::rotate(modelTrans.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
+	//draw to the shadow buffer
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowMap.fbo);
+	{	
+		glViewport(0, 0, SHADOW_SIZE, SHADOW_SIZE);
+
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		shadowMapShdr.use();
+		shadowMapShdr.setMat4("lightSpaceMatrix", lightMat);
+		shadowMapShdr.setMat4("model", modelTrans.modelMatrix());
+
+		model.draw();
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	
+	//fix view port
+	glViewport(0, 0, screenWidth, screenHeight);
+
 	//pipeline definition
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
@@ -80,15 +100,18 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh plane, GLFWwin
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, normalMapping);
 
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, shadowMap.depthBuffer);
 
 	shader.use();
 	
 	//camera uniforms
 	shader.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
+	shader.setMat4("_LightSpaceMatrix", lightMat);
 	shader.setVec3("_EyePos", camera.position);
 
 	//model uniforms
-	modelTrans.rotation = glm::rotate(modelTrans.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
+	
 	shader.setMat4("_Model", modelTrans.modelMatrix());
 
 	//material
@@ -100,6 +123,7 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh plane, GLFWwin
 	//textures
 	shader.setInt("_MainTex", 0);
 	shader.setInt("_NormalMap", 1);
+	shader.setInt("_ShadowMap", 2);
 
 	model.draw();
 
@@ -129,6 +153,7 @@ int main() {
 	
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
 	ew::Shader blin = ew::Shader("assets/blin.vert", "assets/blin.frag");
+	ew::Shader shadowMapShdr = ew::Shader("assets/shadowMap.vert", "assets/shadowMap.frag");
 
 	ew::Mesh plane = ew::createPlane(10, 10, 10);
 
@@ -145,13 +170,33 @@ int main() {
 	normalMapping = ew::loadTexture("assets/bricks/Bricks075A_1K-JPG_NormalDX.jpg");
 	//brickTexture = ew::loadTexture("assets/brick_color.jpg");
 	
-	//shadowMap = wm::createShadowBuffer(SHADOW_SIZE, SHADOW_SIZE);
+	shadowMap = wm::createShadowBuffer(SHADOW_SIZE, SHADOW_SIZE);
+
+	//shadow mapping light
+	float near_plane = 1.0f, far_plane = 7.5f;
+
+	glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+
+	glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(0.0f, 1.0f, 0.0f));
+
+	ew::Camera lightCam;
+
+	lightCam.target = glm::vec3();
+	lightCam.position = light.lightDirection;
+	lightCam.orthographic = true;
+	lightCam.orthoHeight = 10.0f;
+	lightCam.aspectRatio = 1.0f;
+	lightCam.fov = 60.0f;
 
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		
-		
+		const glm::mat4 lightSpaceMat = lightProjection * lightView;
+		//const glm::mat4 lightSpaceMat = lightCam.projectionMatrix() * lightCam.viewMatrix();
+
 		float time = (float)glfwGetTime();
 		deltaTime = time - prevFrameTime;
 		prevFrameTime = time;
@@ -160,7 +205,7 @@ int main() {
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		renderMonekey(blin, model, plane, window);
+		renderMonekey(blin, shadowMapShdr, lightSpaceMat, model, plane, window);
 
 		drawUI();
 		
@@ -191,7 +236,8 @@ void drawUI() {
 		ImGui::SliderFloat("Shininess", &material.Shininess, 2.0f, 1024.0f);
 
 	}
-	
+	ImGui::Image((ImTextureID)(intptr_t)shadowMap.depthBuffer, ImVec2(400, 300));
+
 	ImGui::End();
 
 	ImGui::Render();
