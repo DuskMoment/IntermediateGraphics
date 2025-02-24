@@ -21,6 +21,7 @@
 #include "glm/gtx/transform.hpp"
 
 
+// weenis peenis
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
 void drawUI();
@@ -31,10 +32,11 @@ int screenHeight = 720;
 float prevFrameTime;
 float deltaTime;
 
-const int SHADOW_SIZE = 256;
+const int SHADOW_SIZE = 500;
 
 //camera
 ew::Camera camera;
+// fuck u willison
 ew::CameraController controller;
 
 //transfrom
@@ -59,6 +61,7 @@ struct Light
 {
 	glm::vec3 lightDirection = glm::vec3(0.0, -1.0, 0.0);
 	glm::vec3 lightColor = glm::vec3(1.0);
+	float bias = 0.01;
 
 }light;
 
@@ -70,6 +73,7 @@ void renderMonekey(ew::Shader& shader, ew::Shader& shadowMapShdr, glm::mat4 ligh
 	{	
 		glViewport(0, 0, SHADOW_SIZE, SHADOW_SIZE);
 
+		glCullFace(GL_FRONT);
 		glEnable(GL_DEPTH_TEST);
 		glClear(GL_DEPTH_BUFFER_BIT);
 		shadowMapShdr.use();
@@ -78,6 +82,7 @@ void renderMonekey(ew::Shader& shader, ew::Shader& shadowMapShdr, glm::mat4 ligh
 
 		model.draw();
 	}
+	glCullFace(GL_BACK);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	
 	//fix view port
@@ -109,6 +114,9 @@ void renderMonekey(ew::Shader& shader, ew::Shader& shadowMapShdr, glm::mat4 ligh
 	shader.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
 	shader.setMat4("_LightSpaceMatrix", lightMat);
 	shader.setVec3("_EyePos", camera.position);
+
+	//shadows
+	shader.setFloat("_Bias", light.bias);
 
 	//model uniforms
 	
@@ -155,7 +163,7 @@ int main() {
 	ew::Shader blin = ew::Shader("assets/blin.vert", "assets/blin.frag");
 	ew::Shader shadowMapShdr = ew::Shader("assets/shadowMap.vert", "assets/shadowMap.frag");
 
-	ew::Mesh plane = ew::createPlane(10, 10, 10);
+	ew::Mesh plane = ew::createPlane(100, 100, 10);
 
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 
@@ -177,7 +185,7 @@ int main() {
 
 	glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
 
-	glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
+	glm::mat4 lightView = glm::lookAt(glm::vec3(2.0f, 4.0f, -1.0f),
 		glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f));
 
@@ -234,6 +242,11 @@ void drawUI() {
 		ImGui::SliderFloat("DiffuseK", &material.Kd, 0.0f, 1.0f);
 		ImGui::SliderFloat("SepcularK", &material.Ks, 0.0f, 1.0f);
 		ImGui::SliderFloat("Shininess", &material.Shininess, 2.0f, 1024.0f);
+
+	}
+	if (ImGui::CollapsingHeader("Shadow"))
+	{
+		ImGui::SliderFloat("Bias", &light.bias, 0.001f, 0.1f);
 
 	}
 	ImGui::Image((ImTextureID)(intptr_t)shadowMap.depthBuffer, ImVec2(400, 300));
