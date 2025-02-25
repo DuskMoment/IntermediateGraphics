@@ -71,8 +71,6 @@ float shadowCalcualtion(vec4 fragPosLightSpace)
 			shadow += currentDepth - _Bias > pcfDepth ? 1.0 : 0.0;
 		}
 	}
-
-
 	//float shadow = currentDepth  - _Bias > closestDepth ? 1.0 : 0.0;
 
 	return shadow /= 9.0;
@@ -121,9 +119,8 @@ void main()
 
 	//_Light.color * ((_Material.ambientK + (1.0 - shadow) * lighting) * objectColor);
 
-	vec3 finalColor = ((_AmbientColor * _Material.Ka) + (1.0 - shadow) * lightColor )* objectColor;
+	vec3 finalColor = ((_AmbientColor * _Material.Ka) + (1.0 - shadow) * lightColor ) * objectColor;
 
-	
 	FragColor = vec4(finalColor, 1.0);
 	//FragColor = vec4(0.0);
 }

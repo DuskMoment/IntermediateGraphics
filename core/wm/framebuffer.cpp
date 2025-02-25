@@ -168,7 +168,7 @@ namespace wm
 			return FrameBuffer();
 
 		}
-
+		glClear(GL_DEPTH_BUFFER_BIT);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		return buffer;

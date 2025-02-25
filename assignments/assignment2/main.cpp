@@ -48,6 +48,7 @@ wm::FrameBuffer shadowMap;
 //texutres
 GLuint brickTexture;
 GLuint normalMapping;
+GLuint snow;
 
 struct Material 
 {
@@ -65,7 +66,7 @@ struct Light
 
 }light;
 
-void renderMonekey(ew::Shader& shader, ew::Shader& shadowMapShdr, glm::mat4 lightMat, ew::Model& model, ew::Mesh plane, GLFWwindow* window)
+void renderMonekey(ew::Shader& shader, ew::Shader& deform, ew::Shader& shadowMapShdr, glm::mat4 lightMat, ew::Model& model, ew::Mesh plane, GLFWwindow* window)
 {
 	modelTrans.rotation = glm::rotate(modelTrans.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
 	//draw to the shadow buffer
@@ -75,7 +76,7 @@ void renderMonekey(ew::Shader& shader, ew::Shader& shadowMapShdr, glm::mat4 ligh
 
 		glCullFace(GL_FRONT);
 		glEnable(GL_DEPTH_TEST);
-		glClear(GL_DEPTH_BUFFER_BIT);
+		//glClear(GL_DEPTH_BUFFER_BIT);
 		shadowMapShdr.use();
 		shadowMapShdr.setMat4("lightSpaceMatrix", lightMat);
 		shadowMapShdr.setMat4("model", modelTrans.modelMatrix());
@@ -108,6 +109,9 @@ void renderMonekey(ew::Shader& shader, ew::Shader& shadowMapShdr, glm::mat4 ligh
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, shadowMap.depthBuffer);
 
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, snow);
+
 	shader.use();
 	
 	//camera uniforms
@@ -135,9 +139,35 @@ void renderMonekey(ew::Shader& shader, ew::Shader& shadowMapShdr, glm::mat4 ligh
 
 	model.draw();
 
-
-	shader.setMat4("_Model", glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)));
+	deform.use();
+	
 	//draw plane
+
+	//camera uniforms
+	deform.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
+	deform.setMat4("_LightSpaceMatrix", lightMat);
+	deform.setVec3("_EyePos", camera.position);
+
+	//shadows
+	deform.setFloat("_Bias", light.bias);
+
+	//model uniforms
+
+	deform.setMat4("_Model", glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)));
+
+	//material
+	deform.setFloat("_Material.Ka", material.Ka);
+	deform.setFloat("_Material.Kd", material.Kd);
+	deform.setFloat("_Material.Ks", material.Ks);
+	deform.setFloat("_Material.Shininess", material.Shininess);
+
+	//textures
+	deform.setInt("_MainTex", 3);
+	deform.setInt("_NormalMap", 1);
+	deform.setInt("_ShadowMap", 2);
+	deform.setInt("_ImprintMap", 2);
+
+
 	plane.draw();
 
 	controller.move(window, &camera, deltaTime);
@@ -161,9 +191,10 @@ int main() {
 	
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
 	ew::Shader blin = ew::Shader("assets/blin.vert", "assets/blin.frag");
+	ew::Shader deform = ew::Shader("assets/Deform.vert", "assets/Deform.frag");
 	ew::Shader shadowMapShdr = ew::Shader("assets/shadowMap.vert", "assets/shadowMap.frag");
 
-	ew::Mesh plane = ew::createPlane(100, 100, 10);
+	ew::Mesh plane = ew::createPlane(10, 10, 100);
 
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 
@@ -176,12 +207,13 @@ int main() {
 	//texture
 	brickTexture = ew::loadTexture("assets/bricks/Bricks075A_1K-JPG_Color.jpg");
 	normalMapping = ew::loadTexture("assets/bricks/Bricks075A_1K-JPG_NormalDX.jpg");
+	snow = ew::loadTexture("assets/snow.png");
 	//brickTexture = ew::loadTexture("assets/brick_color.jpg");
 	
 	shadowMap = wm::createShadowBuffer(SHADOW_SIZE, SHADOW_SIZE);
 
 	//shadow mapping light
-	float near_plane = 1.0f, far_plane = 7.5f;
+	float near_plane = 0.01f, far_plane = 100;
 
 	glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
 
@@ -213,7 +245,7 @@ int main() {
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		renderMonekey(blin, shadowMapShdr, lightSpaceMat, model, plane, window);
+		renderMonekey(blin, deform, shadowMapShdr,lightSpaceMat, model, plane, window);
 
 		drawUI();
 		
@@ -232,6 +264,13 @@ void drawUI() {
 	ImGui::Begin("Settings");
 	ImGui::Text("Add Controls Here!");
 	
+	if (ImGui::CollapsingHeader("Model"))
+	{
+
+		ImGui::DragFloat3("model position", &modelTrans.position.x);
+		//ImGui::SliderFloat("Bias", &light.bias, 0.001f, 0.1f);
+
+	}
 	if (ImGui::Button("Reset Camera"))
 	{
 		resetCamera(&camera, &controller);
