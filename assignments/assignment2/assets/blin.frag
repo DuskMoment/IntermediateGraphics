@@ -36,9 +36,11 @@ uniform vec3 _AmbientColor = vec3(0.3,0.4,0.46);
 uniform vec3 _EyePos;
 
 //shadow uniforms
-uniform float _Bias;
+uniform float _Bias = 0.005;
+uniform float _BiasMax = 0.05;
 uniform int _PCF;
 uniform int _PCFAmmount = 1;
+
 
 float shadowCalcualtion(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 {
@@ -46,7 +48,7 @@ float shadowCalcualtion(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
     vec3 projCoords = fragPosLightSpace.xyz/fragPosLightSpace.w;
 	projCoords = projCoords * 0.5 + 0.5;
 
-	float bias = max(0.05 * (1.0 - dot(normal, lightDir)), _Bias);  
+	float bias = max(_BiasMax * (1.0 - dot(normal, lightDir)), _Bias);  
 
 	//sample texture
 	float closestDepth = texture(_ShadowMap, projCoords.xy).r;

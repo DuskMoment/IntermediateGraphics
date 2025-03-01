@@ -64,6 +64,7 @@ struct Light
 	glm::vec3 lightDirection = glm::vec3(-2.0f, 4.0f, -1.0f);
 	glm::vec3 lightColor = glm::vec3(1.0);
 	float bias = 0.01;
+	float maxBias = 0.01;
 	bool pcf = false;
 	int pcfAmmount = 1;
 
@@ -127,6 +128,7 @@ void renderMonekey(ew::Shader& shader, ew::Shader& deform, ew::Shader& shadowMap
 
 	//shadows
 	shader.setFloat("_Bias", light.bias);
+	shader.setFloat("_BiasMax", light.bias);
 	shader.setInt("_PCF", light.pcf);
 	shader.setInt("_PCFAmmount", light.pcfAmmount);
 
@@ -293,7 +295,8 @@ void drawUI() {
 	}
 	if (ImGui::CollapsingHeader("Shadow"))
 	{
-		ImGui::SliderFloat("Bias", &light.bias, 0.0f, 0.01f);
+		ImGui::SliderFloat("Min Bias", &light.bias, 0.0f, 0.01f);
+		ImGui::SliderFloat("Max Bias", &light.maxBias, 0.0f, 0.5f);
 		ImGui::Checkbox("PCF", &light.pcf);
 		ImGui::SliderInt("PCF Filter Ammount", &light.pcfAmmount, 1, 10);
 
