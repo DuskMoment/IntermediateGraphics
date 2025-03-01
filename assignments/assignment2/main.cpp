@@ -21,7 +21,6 @@
 #include "glm/gtx/transform.hpp"
 
 
-// weenis peenis
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
 void drawUI();
@@ -36,7 +35,7 @@ const int SHADOW_SIZE = 500;
 
 //camera
 ew::Camera camera;
-// fuck u willison
+
 ew::CameraController controller;
 
 //transfrom
@@ -50,6 +49,8 @@ GLuint brickTexture;
 GLuint normalMapping;
 GLuint snow;
 
+bool isSnow = false;
+
 struct Material 
 {
 	float Ka = 1.0;
@@ -60,9 +61,11 @@ struct Material
 
 struct Light
 {
-	glm::vec3 lightDirection = glm::vec3(0.0, -1.0, 0.0);
+	glm::vec3 lightDirection = glm::vec3(-2.0f, 4.0f, -1.0f);
 	glm::vec3 lightColor = glm::vec3(1.0);
 	float bias = 0.01;
+	bool pcf = false;
+	int pcfAmmount = 1;
 
 }light;
 
@@ -73,10 +76,13 @@ void renderMonekey(ew::Shader& shader, ew::Shader& deform, ew::Shader& shadowMap
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowMap.fbo);
 	{	
 		glViewport(0, 0, SHADOW_SIZE, SHADOW_SIZE);
-
 		glCullFace(GL_FRONT);
 		glEnable(GL_DEPTH_TEST);
-		//glClear(GL_DEPTH_BUFFER_BIT);
+		if (!isSnow)
+		{
+			glClear(GL_DEPTH_BUFFER_BIT);
+
+		}
 		shadowMapShdr.use();
 		shadowMapShdr.setMat4("lightSpaceMatrix", lightMat);
 		shadowMapShdr.setMat4("model", modelTrans.modelMatrix());
@@ -121,10 +127,14 @@ void renderMonekey(ew::Shader& shader, ew::Shader& deform, ew::Shader& shadowMap
 
 	//shadows
 	shader.setFloat("_Bias", light.bias);
+	shader.setInt("_PCF", light.pcf);
+	shader.setInt("_PCFAmmount", light.pcfAmmount);
 
 	//model uniforms
-	
 	shader.setMat4("_Model", modelTrans.modelMatrix());
+
+	//light
+	shader.setVec3("_LightDirection", light.lightDirection);
 
 	//material
 	shader.setFloat("_Material.Ka", material.Ka);
@@ -139,34 +149,40 @@ void renderMonekey(ew::Shader& shader, ew::Shader& deform, ew::Shader& shadowMap
 
 	model.draw();
 
-	deform.use();
-	
-	//draw plane
+	if (isSnow)
+	{
+		deform.use();
 
-	//camera uniforms
-	deform.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
-	deform.setMat4("_LightSpaceMatrix", lightMat);
-	deform.setVec3("_EyePos", camera.position);
+		//draw plane
 
-	//shadows
-	deform.setFloat("_Bias", light.bias);
+		//camera uniforms
+		deform.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
+		deform.setMat4("_LightSpaceMatrix", lightMat);
+		deform.setVec3("_EyePos", camera.position);
 
-	//model uniforms
+		//shadows
+		deform.setFloat("_Bias", light.bias);
 
-	deform.setMat4("_Model", glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)));
+		//model uniforms
 
-	//material
-	deform.setFloat("_Material.Ka", material.Ka);
-	deform.setFloat("_Material.Kd", material.Kd);
-	deform.setFloat("_Material.Ks", material.Ks);
-	deform.setFloat("_Material.Shininess", material.Shininess);
+		deform.setMat4("_Model", glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)));
 
-	//textures
-	deform.setInt("_MainTex", 3);
-	deform.setInt("_NormalMap", 1);
-	deform.setInt("_ShadowMap", 2);
-	deform.setInt("_ImprintMap", 2);
+		//material
+		deform.setFloat("_Material.Ka", material.Ka);
+		deform.setFloat("_Material.Kd", material.Kd);
+		deform.setFloat("_Material.Ks", material.Ks);
+		deform.setFloat("_Material.Shininess", material.Shininess);
 
+		//textures
+		deform.setInt("_MainTex", 3);
+		deform.setInt("_NormalMap", 1);
+		deform.setInt("_ShadowMap", 2);
+		deform.setInt("_ImprintMap", 2);
+	}
+	else
+	{
+		shader.setMat4("_Model", glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)));
+	}
 
 	plane.draw();
 
@@ -216,24 +232,16 @@ int main() {
 	float near_plane = 0.01f, far_plane = 100;
 
 	glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-
-	glm::mat4 lightView = glm::lookAt(glm::vec3(2.0f, 4.0f, -1.0f),
-		glm::vec3(0.0f, 0.0f, 0.0f),
-		glm::vec3(0.0f, 1.0f, 0.0f));
-
-	ew::Camera lightCam;
-
-	lightCam.target = glm::vec3();
-	lightCam.position = light.lightDirection;
-	lightCam.orthographic = true;
-	lightCam.orthoHeight = 10.0f;
-	lightCam.aspectRatio = 1.0f;
-	lightCam.fov = 60.0f;
-
+	//-2.0f, 4.0f, -1.0f
+	
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		
+		glm::mat4 lightView = glm::lookAt(light.lightDirection,
+			glm::vec3(0.0f, 0.0f, 0.0f),
+			glm::vec3(0.0f, 1.0f, 0.0f));
+
 		const glm::mat4 lightSpaceMat = lightProjection * lightView;
 		//const glm::mat4 lightSpaceMat = lightCam.projectionMatrix() * lightCam.viewMatrix();
 
@@ -285,8 +293,18 @@ void drawUI() {
 	}
 	if (ImGui::CollapsingHeader("Shadow"))
 	{
-		ImGui::SliderFloat("Bias", &light.bias, 0.001f, 0.1f);
+		ImGui::SliderFloat("Bias", &light.bias, 0.0f, 0.1f);
+		ImGui::Checkbox("PCF", &light.pcf);
+		ImGui::SliderInt("PCF Filter Ammount", &light.pcfAmmount, 1, 10);
 
+	}
+	if (ImGui::CollapsingHeader("Light"))
+	{
+		ImGui::DragFloat3("Light Position", &light.lightDirection.x);
+	}
+	if (ImGui::CollapsingHeader("SUPER SECRET SETTINGS!!!!"))
+	{
+		ImGui::Checkbox("SnowMode", &isSnow);
 	}
 	ImGui::Image((ImTextureID)(intptr_t)shadowMap.depthBuffer, ImVec2(400, 300));
 

@@ -22,7 +22,7 @@ out Surface{
 void main()
 {
 	//model to world space converstions
-	vs_out.WorldPos = vec3(_Model * vec4(in_Pos,1.0));
+	vs_out.WorldPos = vec3(_Model * vec4(in_Pos, 1.0));
 	vs_out.WorldNormal = transpose(inverse(mat3(_Model))) * in_Normal;
 
 	vec3 T = normalize(vec3(_Model * vec4(in_Tangent, 0.0)));

@@ -35,78 +35,71 @@ uniform vec3 _AmbientColor = vec3(0.3,0.4,0.46);
 //camera uniforms
 uniform vec3 _EyePos;
 
+//shadow uniforms
 uniform float _Bias;
-uniform bool _PCF;
+uniform int _PCF;
+uniform int _PCFAmmount = 1;
 
 float shadowCalcualtion(vec4 fragPosLightSpace)
 {
-
-//	if(_PCF)
-//	{
-//	}
-//	else
-//	{
-//	}
-
+	//get correct coordinates
     vec3 projCoords = fragPosLightSpace.xyz/fragPosLightSpace.w;
-
 	projCoords = projCoords * 0.5 + 0.5;
 
+	//sample texture
 	float closestDepth = texture(_ShadowMap, projCoords.xy).r;
-	float currentDepth = projCoords.z;
+	if(_PCF == 0)
+	{
+		float currentDepth = projCoords.z;
 
-	if(projCoords.z  <= 0.0 || projCoords.z > 1.0)
-	 {
-		return 0.0;
-	 }
+		//top the z axis issue
+		if(projCoords.z  <= 0.0 || projCoords.z > 1.0)
+		 {
+			return 0.0;
+		 }
+
+		 float shadow = currentDepth - _Bias > closestDepth ? 1.0 : 0.0;
+
+		 return shadow;
+	}
+	
 
 	float shadow = 0.0;
 	vec2 texelSize = 1.0/textureSize(_ShadowMap, 0);
+	float currentDepth = projCoords.z;
 
-	for(int x = -1; x <=1; ++x)
+	for(int x = -1; x <= _PCFAmmount; ++x)
 	{
-		for(int y = -1; y<= 1; ++y)
+		for(int y = -1; y<= _PCFAmmount; ++y)
 		{
 			float pcfDepth = texture(_ShadowMap, projCoords.xy + vec2(x,y) * texelSize).r;
 			shadow += currentDepth - _Bias > pcfDepth ? 1.0 : 0.0;
 		}
 	}
-	//float shadow = currentDepth  - _Bias > closestDepth ? 1.0 : 0.0;
-
+	
 	return shadow /= 9.0;
 }
 
 vec3 blinFong()
 {
-	
 	vec3 normal = normalize(fs_in.WorldNormal);
-	//normal = texture(_NormalMap, fs_in.TexCoord).rgb;
-	normal = normalize(normal * 2.0 - 1.0);
 
-	vec3 toLight = _LightDirection;
-	//toLight = fs_in.TBN  * -toLight;
+	vec3 toLight = normalize(_LightDirection - fs_in.WorldPos);
 
-	toLight = -toLight;
-
-	//defuse lighting
 	float diffuseFactor = max(dot(normal,toLight),0.0);
 
 	vec3 diffuseColor = _LightColor * diffuseFactor;
 
 	vec3 toEye = normalize(_EyePos - fs_in.WorldPos);
-
-	//blinn phong
 	vec3 h = normalize(toLight + toEye);
-	
-	//specular
+
 	float specularFactor = pow(max(dot(normal,h),0.0),_Material.Shininess);
 
-	//sumation equation
-	vec3 lightColor = (_Material.Kd * diffuseColor + _Material.Ks * specularFactor) * _LightColor;
+	vec3 lightColor = (diffuseColor * _Material.Kd + specularFactor * _Material.Ks) * _LightColor;
 
-	//vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
 
 	return lightColor;
+
 }
 void main()
 {
@@ -121,6 +114,5 @@ void main()
 
 	vec3 finalColor = ((_AmbientColor * _Material.Ka) + (1.0 - shadow) * lightColor ) * objectColor;
 
-	FragColor = vec4(finalColor, 1.0);
-	//FragColor = vec4(0.0);
+	FragColor = vec4(finalColor * objectColor, 1.0);
 }
