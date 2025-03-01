@@ -293,7 +293,7 @@ void drawUI() {
 	}
 	if (ImGui::CollapsingHeader("Shadow"))
 	{
-		ImGui::SliderFloat("Bias", &light.bias, 0.0f, 0.1f);
+		ImGui::SliderFloat("Bias", &light.bias, 0.0f, 0.01f);
 		ImGui::Checkbox("PCF", &light.pcf);
 		ImGui::SliderInt("PCF Filter Ammount", &light.pcfAmmount, 1, 10);
 

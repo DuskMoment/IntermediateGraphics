@@ -40,11 +40,13 @@ uniform float _Bias;
 uniform int _PCF;
 uniform int _PCFAmmount = 1;
 
-float shadowCalcualtion(vec4 fragPosLightSpace)
+float shadowCalcualtion(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 {
 	//get correct coordinates
     vec3 projCoords = fragPosLightSpace.xyz/fragPosLightSpace.w;
 	projCoords = projCoords * 0.5 + 0.5;
+
+	float bias = max(0.05 * (1.0 - dot(normal, lightDir)), _Bias);  
 
 	//sample texture
 	float closestDepth = texture(_ShadowMap, projCoords.xy).r;
@@ -58,7 +60,7 @@ float shadowCalcualtion(vec4 fragPosLightSpace)
 			return 0.0;
 		 }
 
-		 float shadow = currentDepth - _Bias > closestDepth ? 1.0 : 0.0;
+		 float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 
 		 return shadow;
 	}
@@ -108,7 +110,7 @@ void main()
 
 	vec3 objectColor = texture(_MainTex,fs_in.TexCoord).rgb;
 
-	float shadow = shadowCalcualtion(fs_in.fragPosLightSpace);
+	float shadow = shadowCalcualtion(fs_in.fragPosLightSpace, normalize(fs_in.WorldNormal), normalize(_LightDirection - fs_in.WorldPos));
 
 	//_Light.color * ((_Material.ambientK + (1.0 - shadow) * lighting) * objectColor);
 
