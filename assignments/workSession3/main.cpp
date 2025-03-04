@@ -15,6 +15,11 @@
 #include <ew/transform.h>
 #include <ew/texture.h>
 
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+
+#include <wm/framebuffer.h>
+
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
 void drawUI();
@@ -36,6 +41,7 @@ ew::Transform modelTrans;
 GLuint brickTexture;
 GLuint normalMapping;
 
+wm::FrameBuffer framebuffer;
 struct Material 
 {
 	float Ka = 1.0;
@@ -44,9 +50,28 @@ struct Material
 	float Shininess = 128;
 }material;
 
+struct FullscreenQuad
+{
+	GLuint vao;
+	GLuint vbo;
+
+}fullscreenQuad;
+
+static float quad_vertices[] = {
+	// pos (x, y) texcoord (u, v)
+	-1.0f,  1.0f, 0.0f, 1.0f,
+	-1.0f, -1.0f, 0.0f, 0.0f,
+	1.0f, -1.0f, 1.0f, 0.0f,
+
+	-1.0f,  1.0f, 0.0f, 1.0f,
+	1.0f, -1.0f, 1.0f, 0.0f,
+	1.0f,  1.0f, 1.0f, 1.0f,
+};
+
 void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 {
 	
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
 	//pipeline definition
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
@@ -85,10 +110,45 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 	shader.setInt("_MainTex", 0);
 	shader.setInt("_NormalMap", 1);
 
-	model.draw();
+	for (int i = -1; i < 9; i++)
+	{
+		for (int j = -1; j < 9; j++)
+		{
+			model.draw();
+
+			shader.setMat4("_Model", glm::translate(glm::vec3(2.0f * i, 0 , 2.0f * j)));
+		}
+		
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	
 
 	controller.move(window, &camera, deltaTime);
 
+}
+void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer)
+{
+	glDisable(GL_DEPTH_TEST);
+	glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer[0]);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer[1]);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer[2]);
+
+	shader.use();
+	shader.setInt("_coords", 1);
+	shader.setInt("_Normals", 2);
+	shader.setInt("_Albito", 0);
+
+	glBindVertexArray(fullscreenQuad.vao);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glBindVertexArray(0);
 }
 
 void resetCamera(ew::Camera* camera, ew::CameraController* controller)
@@ -107,9 +167,11 @@ int main() {
 	//chache 
 	
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
-	ew::Shader _default = ew::Shader("assets/default.vert", "assets/default.frag");
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
+	ew::Shader _default = ew::Shader("assets/default.vert", "assets/default.frag");
+	ew::Shader geoShader = ew::Shader("assets/geoShader.vert", "assets/geoShader.frag");
 
+	
 	//init camera
 	camera.position = glm::vec3(0.0f, 0.0f, 5.0f);
 	camera.target = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -121,7 +183,23 @@ int main() {
 	normalMapping = ew::loadTexture("assets/bricks/Bricks075A_1K-JPG_NormalDX.jpg");
 	//brickTexture = ew::loadTexture("assets/brick_color.jpg");
 	
+	framebuffer = wm::createHDR_FramBuffer(screenWidth, screenHeight);
 
+	//inint full screen quad
+	glGenVertexArrays(1, &fullscreenQuad.vao);
+	glGenBuffers(1, &fullscreenQuad.vbo);
+
+	glBindVertexArray(fullscreenQuad.vao);
+	glBindBuffer(GL_ARRAY_BUFFER, fullscreenQuad.vbo);
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0); //positions
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1); //text coords
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(sizeof(float) * 2));
+
+	glBindVertexArray(0);
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
@@ -135,6 +213,7 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		renderMonekey(_default, model, window);
+		postProcess(geoShader, framebuffer);
 
 		drawUI();
 		
@@ -165,7 +244,11 @@ void drawUI() {
 		ImGui::SliderFloat("Shininess", &material.Shininess, 2.0f, 1024.0f);
 
 	}
-	
+
+	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[0], ImVec2(400, 300));
+	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[1], ImVec2(400, 300));
+	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[2], ImVec2(400, 300));
+
 	ImGui::End();
 
 	ImGui::Render();
