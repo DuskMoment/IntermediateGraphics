@@ -68,6 +68,7 @@ static float quad_vertices[] = {
 	1.0f,  1.0f, 1.0f, 1.0f,
 };
 
+
 void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 {
 	
@@ -110,9 +111,9 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 	shader.setInt("_MainTex", 0);
 	shader.setInt("_NormalMap", 1);
 
-	for (int i = -1; i < 9; i++)
+	for (int i = -1; i < 350; i++)
 	{
-		for (int j = -1; j < 9; j++)
+		for (int j = -1; j < 350; j++)
 		{
 			model.draw();
 
@@ -145,6 +146,14 @@ void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer)
 	shader.setInt("_coords", 1);
 	shader.setInt("_Normals", 2);
 	shader.setInt("_Albito", 0);
+
+	shader.setVec3("_EyePos", camera.position);
+
+	//material
+	shader.setFloat("_Material.Ka", material.Ka);
+	shader.setFloat("_Material.Kd", material.Kd);
+	shader.setFloat("_Material.Ks", material.Ks);
+	shader.setFloat("_Material.Shininess", material.Shininess);
 
 	glBindVertexArray(fullscreenQuad.vao);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
