@@ -22,17 +22,20 @@ uniform sampler2D _coords;
 uniform sampler2D _Normals;
 uniform sampler2D _Albito;
 
+uniform sampler2D _LightAlbito;
+uniform sampler2D _LightPos;
+
 uniform vec3 _LightColor = vec3(1.0);
 uniform vec3 _EyePos;
 
 out vec4 FragColor;
 vec3 LightDirection = vec3(0.0,-1.0, 0.0);
 
-vec3 blinFong(vec3 WorldNormal, vec3 WorldPos)
+vec3 blinFong(vec3 WorldNormal, vec3 WorldPos, vec3 _lightColor, vec3 LightPos)
 {
 	vec3 normal = normalize(WorldNormal);
 
-	vec3 toLight = normalize(-LightDirection - WorldPos);
+	vec3 toLight = normalize(LightPos - WorldPos);
 
 	float diffuseFactor = max(dot(normal,toLight),0.0);
 
@@ -44,7 +47,7 @@ vec3 blinFong(vec3 WorldNormal, vec3 WorldPos)
 
 	float specularFactor = pow(max(dot(normal,h),0.0),_Material.Shininess);
 
-	vec3 lightColor = (diffuseColor * _Material.Kd + specularFactor * _Material.Ks) * _LightColor;
+	vec3 lightColor = (diffuseColor * _Material.Kd + specularFactor * _Material.Ks) * _lightColor;
 
 
 	return lightColor;
@@ -54,7 +57,10 @@ void main()
 {
 
 	vec3 pos = texture(_Albito, fs_in.TexCoord).rgb;
-	vec3 color = blinFong(texture(_Normals, fs_in.TexCoord).xyz, texture(_coords, fs_in.TexCoord).xyz);
+	vec3 lightColor = texture(_LightAlbito, fs_in.TexCoord).rgb;
+	vec3 lighPos = texture(_LightPos, fs_in.TexCoord).rgb;
+
+	vec3 color = blinFong(texture(_Normals, fs_in.TexCoord).xyz, texture(_coords, fs_in.TexCoord).xyz, lightColor, lighPos);
 
 	color *= pos;
 

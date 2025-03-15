@@ -14,6 +14,7 @@
 #include <ew/cameraController.h>
 #include <ew/transform.h>
 #include <ew/texture.h>
+#include <ew/procGen.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
@@ -42,6 +43,7 @@ GLuint brickTexture;
 GLuint normalMapping;
 
 wm::FrameBuffer framebuffer;
+wm::FrameBuffer lightBuffer;
 struct Material 
 {
 	float Ka = 1.0;
@@ -69,7 +71,7 @@ static float quad_vertices[] = {
 };
 
 
-void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
+void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh& light, GLFWwindow* window)
 {
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
@@ -98,7 +100,7 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 	shader.setVec3("_EyePos", camera.position);
 
 	//model uniforms
-	modelTrans.rotation = glm::rotate(modelTrans.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
+	//modelTrans.rotation = glm::rotate(modelTrans.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
 	shader.setMat4("_Model", modelTrans.modelMatrix());
 
 	//material
@@ -111,9 +113,9 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 	shader.setInt("_MainTex", 0);
 	shader.setInt("_NormalMap", 1);
 
-	for (int i = -1; i < 350; i++)
+	for (int i = -1; i < 10; i++)
 	{
-		for (int j = -1; j < 350; j++)
+		for (int j = -1; j < 10; j++)
 		{
 			model.draw();
 
@@ -122,12 +124,64 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 		
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//draw lights 
+	glBindFramebuffer(GL_FRAMEBUFFER, lightBuffer.fbo);
+
+	//pipeline definition
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+
+	glEnable(GL_DEPTH_TEST);
+
+	//create a gfx pass
+	glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	//texture
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, brickTexture);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, normalMapping);
+
+
+	shader.use();
+
+	//camera uniforms
+	shader.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
+	shader.setVec3("_EyePos", camera.position);
+
+	//model uniforms
+	//modelTrans.rotation = glm::rotate(modelTrans.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
+	shader.setMat4("_Model", modelTrans.modelMatrix());
+
+	//material
+	shader.setFloat("_Material.Ka", material.Ka);
+	shader.setFloat("_Material.Kd", material.Kd);
+	shader.setFloat("_Material.Ks", material.Ks);
+	shader.setFloat("_Material.Shininess", material.Shininess);
+
+	//textures
+	shader.setInt("_MainTex", 0);
+	shader.setInt("_NormalMap", 1);
+	for (int i = -1; i < 10; i++)
+	{
+		for (int j = -1; j < 10; j++)
+		{
+			light.draw();
+
+			shader.setMat4("_Model", glm::translate(glm::vec3(2.0f * i, 5, 2.0f * j)));
+		}
+
+	}
 	
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	controller.move(window, &camera, deltaTime);
 
 }
-void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer)
+void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer, wm::FrameBuffer& bufferLight)
 {
 	glDisable(GL_DEPTH_TEST);
 	glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
@@ -142,10 +196,18 @@ void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer)
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer[2]);
 
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, bufferLight.colorBuffer[0]);
+
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, bufferLight.colorBuffer[1]);
+
 	shader.use();
 	shader.setInt("_coords", 1);
 	shader.setInt("_Normals", 2);
 	shader.setInt("_Albito", 0);
+	shader.setInt("_LightAlbito", 3);
+	shader.setInt("_LightPos", 4);
 
 	shader.setVec3("_EyePos", camera.position);
 
@@ -179,7 +241,7 @@ int main() {
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 	ew::Shader _default = ew::Shader("assets/default.vert", "assets/default.frag");
 	ew::Shader geoShader = ew::Shader("assets/geoShader.vert", "assets/geoShader.frag");
-
+	ew::Mesh light = ew::createSphere(0.5f, 4);
 	
 	//init camera
 	camera.position = glm::vec3(0.0f, 0.0f, 5.0f);
@@ -193,6 +255,7 @@ int main() {
 	//brickTexture = ew::loadTexture("assets/brick_color.jpg");
 	
 	framebuffer = wm::createHDR_FramBuffer(screenWidth, screenHeight);
+	lightBuffer = wm::createHDR_FramBuffer(screenWidth, screenHeight);
 
 	//inint full screen quad
 	glGenVertexArrays(1, &fullscreenQuad.vao);
@@ -221,8 +284,8 @@ int main() {
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		renderMonekey(_default, model, window);
-		postProcess(geoShader, framebuffer);
+		renderMonekey(_default, model,light, window);
+		postProcess(geoShader, framebuffer, lightBuffer);
 
 		drawUI();
 		
@@ -257,6 +320,10 @@ void drawUI() {
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[0], ImVec2(400, 300));
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[1], ImVec2(400, 300));
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[2], ImVec2(400, 300));
+
+	ImGui::Image((ImTextureID)(intptr_t)lightBuffer.colorBuffer[0], ImVec2(400, 300));
+	ImGui::Image((ImTextureID)(intptr_t)lightBuffer.colorBuffer[1], ImVec2(400, 300));
+	ImGui::Image((ImTextureID)(intptr_t)lightBuffer.colorBuffer[2], ImVec2(400, 300));
 
 	ImGui::End();
 
