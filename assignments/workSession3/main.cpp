@@ -20,6 +20,7 @@
 #include <glm/gtx/transform.hpp>
 
 #include <wm/framebuffer.h>
+#include <random>
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
@@ -30,6 +31,9 @@ int screenWidth = 1080;
 int screenHeight = 720;
 float prevFrameTime;
 float deltaTime;
+
+const int SUZAN_X = 10;
+const int SUZAN_Y = 10;
 
 //camera
 ew::Camera camera;
@@ -70,6 +74,29 @@ static float quad_vertices[] = {
 	1.0f,  1.0f, 1.0f, 1.0f,
 };
 
+struct Light
+{
+	glm::vec3 pos;
+	glm::vec3 color;
+};
+Light lights[SUZAN_X * SUZAN_Y];
+
+//random nuber gen
+
+
+
+void calcualteLightRange(float x, float y, int lightIndex)
+{
+	//fix me :3
+	//static std::random_device rd;
+	//static std::mt19937 gen(rd());
+	//static std::uniform_real_distribution<>dis(x, y + 3);
+	float randX = x;//dis(gen);
+	float randZ = y; //dis(gen);
+
+	lights[lightIndex].pos = glm::vec3(randX, 2, randZ);
+	lights[lightIndex].color = glm::vec3(1);
+}
 
 void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh& light, GLFWwindow* window)
 {
@@ -113,70 +140,72 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh& light, GLFWwi
 	shader.setInt("_MainTex", 0);
 	shader.setInt("_NormalMap", 1);
 
-	for (int i = -1; i < 10; i++)
+	for (int i = -1; i < SUZAN_X; i++)
 	{
-		for (int j = -1; j < 10; j++)
+		for (int j = -1; j < SUZAN_Y; j++)
 		{
 			model.draw();
 
 			shader.setMat4("_Model", glm::translate(glm::vec3(2.0f * i, 0 , 2.0f * j)));
+
+			//calcualteLightRange(2.0f * i, 2.0f * j, i+j);
 		}
 		
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	//draw lights 
-	glBindFramebuffer(GL_FRAMEBUFFER, lightBuffer.fbo);
+	////draw lights 
+	//glBindFramebuffer(GL_FRAMEBUFFER, lightBuffer.fbo);
 
-	//pipeline definition
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
+	////pipeline definition
+	//glEnable(GL_CULL_FACE);
+	//glCullFace(GL_BACK);
 
-	glEnable(GL_DEPTH_TEST);
+	//glEnable(GL_DEPTH_TEST);
 
-	//create a gfx pass
-	glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	////create a gfx pass
+	//glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
+	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	//texture
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, brickTexture);
+	////texture
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, brickTexture);
 
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, normalMapping);
+	//glActiveTexture(GL_TEXTURE1);
+	//glBindTexture(GL_TEXTURE_2D, normalMapping);
 
 
-	shader.use();
+	//shader.use();
 
-	//camera uniforms
-	shader.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
-	shader.setVec3("_EyePos", camera.position);
+	////camera uniforms
+	//shader.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
+	//shader.setVec3("_EyePos", camera.position);
 
-	//model uniforms
-	//modelTrans.rotation = glm::rotate(modelTrans.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
-	shader.setMat4("_Model", modelTrans.modelMatrix());
+	////model uniforms
+	////modelTrans.rotation = glm::rotate(modelTrans.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
+	//shader.setMat4("_Model", modelTrans.modelMatrix());
 
-	//material
-	shader.setFloat("_Material.Ka", material.Ka);
-	shader.setFloat("_Material.Kd", material.Kd);
-	shader.setFloat("_Material.Ks", material.Ks);
-	shader.setFloat("_Material.Shininess", material.Shininess);
+	////material
+	//shader.setFloat("_Material.Ka", material.Ka);
+	//shader.setFloat("_Material.Kd", material.Kd);
+	//shader.setFloat("_Material.Ks", material.Ks);
+	//shader.setFloat("_Material.Shininess", material.Shininess);
 
-	//textures
-	shader.setInt("_MainTex", 0);
-	shader.setInt("_NormalMap", 1);
-	for (int i = -1; i < 10; i++)
-	{
-		for (int j = -1; j < 10; j++)
-		{
-			light.draw();
+	////textures
+	//shader.setInt("_MainTex", 0);
+	//shader.setInt("_NormalMap", 1);
+	//for (int i = -1; i < 10; i++)
+	//{
+	//	for (int j = -1; j < 10; j++)
+	//	{
+	//		light.draw();
 
-			shader.setMat4("_Model", glm::translate(glm::vec3(2.0f * i, 5, 2.0f * j)));
-		}
+	//		shader.setMat4("_Model", glm::translate(glm::vec3(2.0f * i, 5, 2.0f * j)));
+	//	}
 
-	}
-	
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	//}
+	//
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	controller.move(window, &camera, deltaTime);
 
@@ -196,18 +225,25 @@ void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer, wm::FrameBuffer& b
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer[2]);
 
-	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_2D, bufferLight.colorBuffer[0]);
+	//glActiveTexture(GL_TEXTURE3);
+	//glBindTexture(GL_TEXTURE_2D, bufferLight.colorBuffer[0]);
 
-	glActiveTexture(GL_TEXTURE4);
-	glBindTexture(GL_TEXTURE_2D, bufferLight.colorBuffer[1]);
+	//glActiveTexture(GL_TEXTURE4);
+	//glBindTexture(GL_TEXTURE_2D, bufferLight.colorBuffer[1]);
 
 	shader.use();
 	shader.setInt("_coords", 1);
 	shader.setInt("_Normals", 2);
 	shader.setInt("_Albito", 0);
-	shader.setInt("_LightAlbito", 3);
-	shader.setInt("_LightPos", 4);
+	//these need to be looped through? - mov to after the quad
+	int max = SUZAN_X * SUZAN_Y;
+	
+	for (int i = 0; i < max; i++)
+	{
+		shader.setVec3("_lights[" + std::to_string(i) + "].pos", lights[i].pos);
+		shader.setVec3("_lights[" + std::to_string(i) + "].color", lights[i].color);
+	}
+
 
 	shader.setVec3("_EyePos", camera.position);
 
@@ -220,6 +256,37 @@ void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer, wm::FrameBuffer& b
 	glBindVertexArray(fullscreenQuad.vao);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glBindVertexArray(0);
+}
+void renderSphere(ew::Mesh& sphere, ew::Shader& shader)
+{
+	glEnable(GL_DEPTH_TEST);
+	glBlitNamedFramebuffer(framebuffer.fbo, 0, 0, 0,
+		screenWidth, screenHeight, 0, 0, screenWidth, screenHeight, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+	shader.use();
+	
+	//camera uniforms
+	shader.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
+	shader.setVec3("_EyePos", camera.position);
+
+	//model uniforms
+	//modelTrans.rotation = glm::rotate(modelTrans.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
+	shader.setMat4("_Model", modelTrans.modelMatrix());
+
+	//material
+	/*shader.setFloat("_Material.Ka", material.Ka);
+	shader.setFloat("_Material.Kd", material.Kd);
+	shader.setFloat("_Material.Ks", material.Ks);
+	shader.setFloat("_Material.Shininess", material.Shininess);*/
+	
+	//draw the spheres
+	for (int i = 0; i < SUZAN_X * SUZAN_Y; i++)
+	{
+		shader.setMat4("_Model", glm::translate(lights[i].pos));
+		sphere.draw();
+
+	}
+
+
 }
 
 void resetCamera(ew::Camera* camera, ew::CameraController* controller)
@@ -273,6 +340,20 @@ int main() {
 
 	glBindVertexArray(0);
 
+	// instancing
+
+	// calculagte all suzannes
+	// all lights
+
+	for (int i = 0; i < SUZAN_X; i++)
+	{
+		for (int j = 0; j < SUZAN_Y; j++)
+		{
+			calcualteLightRange(2.0f * i, 2.0f * j, i * j);
+		}
+
+	}
+
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 
@@ -287,6 +368,8 @@ int main() {
 		renderMonekey(_default, model,light, window);
 		postProcess(geoShader, framebuffer, lightBuffer);
 
+		// redner lights
+		renderSphere(light, _default);
 		drawUI();
 		
 
@@ -321,9 +404,7 @@ void drawUI() {
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[1], ImVec2(400, 300));
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[2], ImVec2(400, 300));
 
-	ImGui::Image((ImTextureID)(intptr_t)lightBuffer.colorBuffer[0], ImVec2(400, 300));
-	ImGui::Image((ImTextureID)(intptr_t)lightBuffer.colorBuffer[1], ImVec2(400, 300));
-	ImGui::Image((ImTextureID)(intptr_t)lightBuffer.colorBuffer[2], ImVec2(400, 300));
+	ImGui::Image((ImTextureID)(intptr_t)lightBuffer.depthBuffer, ImVec2(400, 300));
 
 	ImGui::End();
 

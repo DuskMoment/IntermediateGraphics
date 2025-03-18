@@ -22,7 +22,7 @@ void main()
 	//FragColor = vec4(1.0, 0, 0, 1.0);
 	//FragColor = vec4(fs_in.WorldPos.xyz, 1.0);
 
-	FragAlbito = vec4(1.0,0.0,0.0,1);
+	FragAlbito = vec4(1.0,1.0,0.0,1);
 	FragPos = vec4(fs_in.WorldPos, 1.0);
 	FragNormal = vec4(fs_in.WorldNormal.xyz, 1.0);
 }

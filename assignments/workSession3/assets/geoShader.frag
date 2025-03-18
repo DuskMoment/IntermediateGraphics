@@ -22,14 +22,22 @@ uniform sampler2D _coords;
 uniform sampler2D _Normals;
 uniform sampler2D _Albito;
 
-uniform sampler2D _LightAlbito;
-uniform sampler2D _LightPos;
+//uniform sampler2D _LightAlbito;
+//uniform sampler2D _LightPos;
 
-uniform vec3 _LightColor = vec3(1.0);
+vec3 _LightColor = vec3(1.0);
 uniform vec3 _EyePos;
 
 out vec4 FragColor;
 vec3 LightDirection = vec3(0.0,-1.0, 0.0);
+
+const int MAX_SUZAN = 100;
+struct Light
+{
+	vec3 pos;
+	vec3 color;
+};
+uniform Light _lights[MAX_SUZAN];
 
 vec3 blinFong(vec3 WorldNormal, vec3 WorldPos, vec3 _lightColor, vec3 LightPos)
 {
@@ -56,13 +64,19 @@ vec3 blinFong(vec3 WorldNormal, vec3 WorldPos, vec3 _lightColor, vec3 LightPos)
 void main()	
 {
 
-	vec3 pos = texture(_Albito, fs_in.TexCoord).rgb;
-	vec3 lightColor = texture(_LightAlbito, fs_in.TexCoord).rgb;
-	vec3 lighPos = texture(_LightPos, fs_in.TexCoord).rgb;
+	vec3 texColor = texture(_Albito, fs_in.TexCoord).rgb;
+	//vec3 lightColor = texture(_LightAlbito, fs_in.TexCoord).rgb;
+	//vec3 lighPos = texture(_LightPos, fs_in.TexCoord).rgb;
 
-	vec3 color = blinFong(texture(_Normals, fs_in.TexCoord).xyz, texture(_coords, fs_in.TexCoord).xyz, lightColor, lighPos);
+	vec3 color; //= blinFong(texture(_Normals, fs_in.TexCoord).xyz, texture(_coords, fs_in.TexCoord).xyz, _LightColor, LightDirection);
 
-	color *= pos;
+	for(int i = 0; i < MAX_SUZAN; i++)
+	{
+	  color += blinFong(texture(_Normals, fs_in.TexCoord).xyz, texture(_coords, fs_in.TexCoord).xyz, _lights[i].color, _lights[i].pos);
+	}
+	
+
+	color *= texColor;
 
 	FragColor = vec4(color, 1.0);
 
