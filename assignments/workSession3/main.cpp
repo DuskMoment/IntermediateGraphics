@@ -95,7 +95,13 @@ void calcualteLightRange(float x, float y, int lightIndex)
 	float randZ = y; //dis(gen);
 
 	lights[lightIndex].pos = glm::vec3(randX, 2, randZ);
-	lights[lightIndex].color = glm::vec3(1);
+
+	int r = rand() % 2;
+	int g = rand() % 2;
+	int b = rand() % 2;
+
+	lights[lightIndex].color = glm::vec3(r,g,b);
+	
 }
 
 void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh& light, GLFWwindow* window)
@@ -109,7 +115,7 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh& light, GLFWwi
 	glEnable(GL_DEPTH_TEST);
 
 	//create a gfx pass
-	glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//texture
@@ -213,7 +219,7 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh& light, GLFWwi
 void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer, wm::FrameBuffer& bufferLight)
 {
 	glDisable(GL_DEPTH_TEST);
-	glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
+	glClearColor(0.0, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	glActiveTexture(GL_TEXTURE0);
@@ -282,6 +288,7 @@ void renderSphere(ew::Mesh& sphere, ew::Shader& shader)
 	for (int i = 0; i < SUZAN_X * SUZAN_Y; i++)
 	{
 		shader.setMat4("_Model", glm::translate(lights[i].pos));
+		shader.setVec3("_Color", lights[i].color);
 		sphere.draw();
 
 	}
@@ -345,11 +352,12 @@ int main() {
 	// calculagte all suzannes
 	// all lights
 
+	
 	for (int i = 0; i < SUZAN_X; i++)
 	{
 		for (int j = 0; j < SUZAN_Y; j++)
 		{
-			calcualteLightRange(2.0f * i, 2.0f * j, i * j);
+			calcualteLightRange(2.0f * i, 2.0f * j, i * SUZAN_X + j);
 		}
 
 	}
