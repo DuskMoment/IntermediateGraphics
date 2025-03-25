@@ -78,6 +78,7 @@ struct Light
 {
 	glm::vec3 pos;
 	glm::vec3 color;
+	float radius = 10;
 };
 Light lights[SUZAN_X * SUZAN_Y];
 
@@ -142,6 +143,8 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh& light, GLFWwi
 	shader.setFloat("_Material.Ks", material.Ks);
 	shader.setFloat("_Material.Shininess", material.Shininess);
 
+	shader.setVec3("_Color", glm::vec3(1.0,1.0,1.0));
+
 	//textures
 	shader.setInt("_MainTex", 0);
 	shader.setInt("_NormalMap", 1);
@@ -159,59 +162,6 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh& light, GLFWwi
 		
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	////draw lights 
-	//glBindFramebuffer(GL_FRAMEBUFFER, lightBuffer.fbo);
-
-	////pipeline definition
-	//glEnable(GL_CULL_FACE);
-	//glCullFace(GL_BACK);
-
-	//glEnable(GL_DEPTH_TEST);
-
-	////create a gfx pass
-	//glClearColor(0.6f, 0.8f, 0.92f, 1.0f);
-	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	////texture
-	//glActiveTexture(GL_TEXTURE0);
-	//glBindTexture(GL_TEXTURE_2D, brickTexture);
-
-	//glActiveTexture(GL_TEXTURE1);
-	//glBindTexture(GL_TEXTURE_2D, normalMapping);
-
-
-	//shader.use();
-
-	////camera uniforms
-	//shader.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
-	//shader.setVec3("_EyePos", camera.position);
-
-	////model uniforms
-	////modelTrans.rotation = glm::rotate(modelTrans.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
-	//shader.setMat4("_Model", modelTrans.modelMatrix());
-
-	////material
-	//shader.setFloat("_Material.Ka", material.Ka);
-	//shader.setFloat("_Material.Kd", material.Kd);
-	//shader.setFloat("_Material.Ks", material.Ks);
-	//shader.setFloat("_Material.Shininess", material.Shininess);
-
-	////textures
-	//shader.setInt("_MainTex", 0);
-	//shader.setInt("_NormalMap", 1);
-	//for (int i = -1; i < 10; i++)
-	//{
-	//	for (int j = -1; j < 10; j++)
-	//	{
-	//		light.draw();
-
-	//		shader.setMat4("_Model", glm::translate(glm::vec3(2.0f * i, 5, 2.0f * j)));
-	//	}
-
-	//}
-	//
-	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	controller.move(window, &camera, deltaTime);
 
@@ -231,6 +181,8 @@ void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer, wm::FrameBuffer& b
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer[2]);
 
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, bufferLight.colorBuffer[0]);
 	//glActiveTexture(GL_TEXTURE3);
 	//glBindTexture(GL_TEXTURE_2D, bufferLight.colorBuffer[0]);
 
@@ -248,8 +200,8 @@ void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer, wm::FrameBuffer& b
 	{
 		shader.setVec3("_lights[" + std::to_string(i) + "].pos", lights[i].pos);
 		shader.setVec3("_lights[" + std::to_string(i) + "].color", lights[i].color);
+		shader.setFloat("_lights[" + std::to_string(i) + "].radius", lights[i].radius);
 	}
-
 
 	shader.setVec3("_EyePos", camera.position);
 
@@ -259,15 +211,74 @@ void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer, wm::FrameBuffer& b
 	shader.setFloat("_Material.Ks", material.Ks);
 	shader.setFloat("_Material.Shininess", material.Shininess);
 
+	shader.setInt("_Volume", 4);
+
 	glBindVertexArray(fullscreenQuad.vao);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glBindVertexArray(0);
 }
-void renderSphere(ew::Mesh& sphere, ew::Shader& shader)
+void RenderVolume(wm::FrameBuffer& buffer, ew::Shader shader, wm::FrameBuffer& gBuffer, ew::Mesh& sphere)
+{
+	//change culling
+	glBindFramebuffer(GL_FRAMEBUFFER, buffer.fbo);
+	
+	glClearColor(0.0, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, gBuffer.colorBuffer[0]);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, gBuffer.colorBuffer[1]);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, gBuffer.colorBuffer[2]);
+
+	shader.use();
+
+	shader.setInt("_albito", 0);
+	shader.setInt("_normals", 2);
+	shader.setInt("_positions", 1);
+
+	shader.setMat4("_Model", modelTrans.modelMatrix());
+	shader.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
+
+	shader.setVec3("_EyePos", camera.position);
+
+	shader.setFloat("_Material.Ka", material.Ka);
+	shader.setFloat("_Material.Kd", material.Kd);
+	shader.setFloat("_Material.Ks", material.Ks);
+	shader.setFloat("_Material.Shininess", material.Shininess);
+
+	for (int i = 0; i < SUZAN_X * SUZAN_Y; i++)
+	{
+		shader.setVec3("_lights.pos", lights[i].pos);
+		shader.setVec3("_lights.color", lights[i].color);
+		shader.setFloat("_lights.radius", lights[i].radius);
+
+		shader.setMat4("_Model", glm::translate(lights[i].pos));
+		sphere.draw();
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+void renderSphere(ew::Mesh& sphere, ew::Shader& shader, wm::FrameBuffer &buffer)
 {
 	glEnable(GL_DEPTH_TEST);
 	glBlitNamedFramebuffer(framebuffer.fbo, 0, 0, 0,
 		screenWidth, screenHeight, 0, 0, screenWidth, screenHeight, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+	
+	//glBindFramebuffer(GL_FRAMEBUFFER, buffer.fbo);
+
+	//glEnable(GL_CULL_FACE);
+	//glCullFace(GL_BACK);
+
+	//glEnable(GL_DEPTH_TEST);
+
+	//create a gfx pass
+	//glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	shader.use();
 	
 	//camera uniforms
@@ -293,7 +304,7 @@ void renderSphere(ew::Mesh& sphere, ew::Shader& shader)
 
 	}
 
-
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void resetCamera(ew::Camera* camera, ew::CameraController* controller)
@@ -315,6 +326,7 @@ int main() {
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 	ew::Shader _default = ew::Shader("assets/default.vert", "assets/default.frag");
 	ew::Shader geoShader = ew::Shader("assets/geoShader.vert", "assets/geoShader.frag");
+	ew::Shader renderVolume = ew::Shader("assets/volume.vert", "assets/volume.frag");
 	ew::Mesh light = ew::createSphere(0.5f, 4);
 	
 	//init camera
@@ -374,10 +386,15 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		renderMonekey(_default, model,light, window);
+
+		//moving this function ends up breaking it
 		postProcess(geoShader, framebuffer, lightBuffer);
 
+		RenderVolume(lightBuffer, renderVolume, framebuffer, light);
+		
+
 		// redner lights
-		renderSphere(light, _default);
+		renderSphere(light, _default, lightBuffer);
 		drawUI();
 		
 
@@ -412,7 +429,7 @@ void drawUI() {
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[1], ImVec2(400, 300));
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[2], ImVec2(400, 300));
 
-	ImGui::Image((ImTextureID)(intptr_t)lightBuffer.depthBuffer, ImVec2(400, 300));
+	ImGui::Image((ImTextureID)(intptr_t)lightBuffer.colorBuffer[0], ImVec2(400, 300));
 
 	ImGui::End();
 

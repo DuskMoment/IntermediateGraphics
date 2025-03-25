@@ -22,6 +22,8 @@ uniform sampler2D _coords;
 uniform sampler2D _Normals;
 uniform sampler2D _Albito;
 
+uniform sampler2D _Volume;
+
 //uniform sampler2D _LightAlbito;
 //uniform sampler2D _LightPos;
 
@@ -36,10 +38,17 @@ struct Light
 {
 	vec3 pos;
 	vec3 color;
+	float radius;
 };
 uniform Light _lights[MAX_SUZAN];
 
-vec3 blinFong(vec3 WorldNormal, vec3 WorldPos, vec3 _lightColor, vec3 LightPos)
+float attenuation(float dist, float radius)
+{
+	
+	return clamp((radius - dist)/radius,0.0,1.0);
+}
+
+vec3 blinFong(vec3 WorldNormal, vec3 WorldPos, vec3 _lightColor, vec3 LightPos, float radius)
 {
 	vec3 normal = normalize(WorldNormal);
 
@@ -57,6 +66,7 @@ vec3 blinFong(vec3 WorldNormal, vec3 WorldPos, vec3 _lightColor, vec3 LightPos)
 
 	vec3 lightColor = (diffuseColor * _Material.Kd + specularFactor * _Material.Ks) * _lightColor;
 
+	//lightColor *= attenuation(length(toLight), radius);
 
 	return lightColor;
 
@@ -65,18 +75,21 @@ void main()
 {
 
 	vec3 texColor = texture(_Albito, fs_in.TexCoord).rgb;
+	vec3 volume = texture(_Volume, fs_in.TexCoord).rgb;
+
 	//vec3 lightColor = texture(_LightAlbito, fs_in.TexCoord).rgb;
 	//vec3 lighPos = texture(_LightPos, fs_in.TexCoord).rgb;
 
 	vec3 color; //= blinFong(texture(_Normals, fs_in.TexCoord).xyz, texture(_coords, fs_in.TexCoord).xyz, _LightColor, LightDirection);
 
-	for(int i = 0; i < MAX_SUZAN; i++)
-	{
-	  color += blinFong(texture(_Normals, fs_in.TexCoord).xyz, texture(_coords, fs_in.TexCoord).xyz, _lights[i].color, _lights[i].pos);
-	}
-	
+//	for(int i = 0; i < MAX_SUZAN; i++)
+//	{
+//	  color += blinFong(texture(_Normals, fs_in.TexCoord).xyz, texture(_coords, fs_in.TexCoord).xyz, _lights[i].color, _lights[i].pos, _lights[i].radius);
+//	}
 
-	color *= texColor;
+
+
+	 color = texColor * volume;
 
 	FragColor = vec4(color, 1.0);
 
