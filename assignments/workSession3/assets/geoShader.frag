@@ -89,7 +89,7 @@ void main()
 
 
 
-	 color = texColor * volume;
+    color = texColor * volume;
 
 	FragColor = vec4(color, 1.0);
 

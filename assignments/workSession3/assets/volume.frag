@@ -1,5 +1,5 @@
 #version 450
-out vec4 FragColor;
+layout(location = 0) out vec4 myColor;
 
 in Surface{
 	vec3 WorldPos;
@@ -58,7 +58,7 @@ vec3 calcPointLight(Light light, vec3 normal, vec3 pos)
 
 	//Attenuation
 	float d = length(diff); //Distance to light
-	//lightColor *=attenuateLinear(d,light.radius); //See below for attenuation options
+	lightColor *= attenuateLinear(d,light.radius); //See below for attenuation options
 	return lightColor;
 }
 
@@ -74,6 +74,7 @@ void main()
 	Light light = _lights;
 	vec3 lightColor = calcPointLight(light, normal, worldPos);
 
-	FragColor = vec4(lightColor * texture(_albito, UV).rgb, 1.0);
+	myColor = vec4(lightColor * texture(_albito, UV).rgb, 1.0);
+	//myColor = vec4(vec3(1.0,1.0,1.0), 1.0);
 
 }

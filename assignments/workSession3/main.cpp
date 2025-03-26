@@ -41,6 +41,7 @@ ew::CameraController controller;
 
 //transfrom
 ew::Transform modelTrans;
+ew::Transform lightTrans;
 
 //texutres
 GLuint brickTexture;
@@ -48,6 +49,8 @@ GLuint normalMapping;
 
 wm::FrameBuffer framebuffer;
 wm::FrameBuffer lightBuffer;
+wm::FrameBuffer testBuffer;
+
 struct Material 
 {
 	float Ka = 1.0;
@@ -78,7 +81,7 @@ struct Light
 {
 	glm::vec3 pos;
 	glm::vec3 color;
-	float radius = 10;
+	float radius =3;
 };
 Light lights[SUZAN_X * SUZAN_Y];
 
@@ -168,7 +171,7 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh& light, GLFWwi
 }
 void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer, wm::FrameBuffer& bufferLight)
 {
-	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_DEPTH_TEST);
 	glClearColor(0.0, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -193,6 +196,8 @@ void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer, wm::FrameBuffer& b
 	shader.setInt("_coords", 1);
 	shader.setInt("_Normals", 2);
 	shader.setInt("_Albito", 0);
+	shader.setInt("_Volume", 3);
+
 	//these need to be looped through? - mov to after the quad
 	int max = SUZAN_X * SUZAN_Y;
 	
@@ -211,20 +216,25 @@ void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer, wm::FrameBuffer& b
 	shader.setFloat("_Material.Ks", material.Ks);
 	shader.setFloat("_Material.Shininess", material.Shininess);
 
-	shader.setInt("_Volume", 4);
 
 	glBindVertexArray(fullscreenQuad.vao);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glBindVertexArray(0);
 }
-void RenderVolume(wm::FrameBuffer& buffer, ew::Shader shader, wm::FrameBuffer& gBuffer, ew::Mesh& sphere)
+void RenderVolume(wm::FrameBuffer& lightBuffer, ew::Shader shader, wm::FrameBuffer& gBuffer, ew::Mesh& sphere)
 {
-	//change culling
-	glBindFramebuffer(GL_FRAMEBUFFER, buffer.fbo);
-	
-	glClearColor(0.0, 0.0f, 0.0f, 0.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
 
+	glBindFramebuffer(GL_FRAMEBUFFER, lightBuffer.fbo);
+	
+	//create a gfx pass
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE); //Additive blending
+	glCullFace(GL_FRONT); //Front face culling - we want to render back faces so that the light volumes don't disappear when we enter them.
+	glDepthMask(GL_FALSE); //Disable writing to depth buffer
+	
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, gBuffer.colorBuffer[0]);
 
@@ -240,7 +250,8 @@ void RenderVolume(wm::FrameBuffer& buffer, ew::Shader shader, wm::FrameBuffer& g
 	shader.setInt("_normals", 2);
 	shader.setInt("_positions", 1);
 
-	shader.setMat4("_Model", modelTrans.modelMatrix());
+	lightTrans.scale = glm::vec3(5);
+	shader.setMat4("_Model", lightTrans.modelMatrix());
 	shader.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
 
 	shader.setVec3("_EyePos", camera.position);
@@ -254,13 +265,18 @@ void RenderVolume(wm::FrameBuffer& buffer, ew::Shader shader, wm::FrameBuffer& g
 	{
 		shader.setVec3("_lights.pos", lights[i].pos);
 		shader.setVec3("_lights.color", lights[i].color);
-		shader.setFloat("_lights.radius", lights[i].radius);
+		shader.setFloat("_lights.radius",lights[i].radius);
 
-		shader.setMat4("_Model", glm::translate(lights[i].pos));
+		shader.setMat4("_Model", glm::translate(lights[i].pos));//glm::translate(lights[i].pos)
+		//shader.setMat4("_Model", glm::scale(glm::vec3(5)));
 		sphere.draw();
 	}
 
+
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glCullFace(GL_BACK);
+	glDisable(GL_BLEND);
+	glDepthMask(GL_TRUE);
 }
 void renderSphere(ew::Mesh& sphere, ew::Shader& shader, wm::FrameBuffer &buffer)
 {
@@ -268,17 +284,7 @@ void renderSphere(ew::Mesh& sphere, ew::Shader& shader, wm::FrameBuffer &buffer)
 	glBlitNamedFramebuffer(framebuffer.fbo, 0, 0, 0,
 		screenWidth, screenHeight, 0, 0, screenWidth, screenHeight, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
 	
-	//glBindFramebuffer(GL_FRAMEBUFFER, buffer.fbo);
-
-	//glEnable(GL_CULL_FACE);
-	//glCullFace(GL_BACK);
-
-	//glEnable(GL_DEPTH_TEST);
-
-	//create a gfx pass
-	//glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	
 	shader.use();
 	
 	//camera uniforms
@@ -289,12 +295,6 @@ void renderSphere(ew::Mesh& sphere, ew::Shader& shader, wm::FrameBuffer &buffer)
 	//modelTrans.rotation = glm::rotate(modelTrans.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
 	shader.setMat4("_Model", modelTrans.modelMatrix());
 
-	//material
-	/*shader.setFloat("_Material.Ka", material.Ka);
-	shader.setFloat("_Material.Kd", material.Kd);
-	shader.setFloat("_Material.Ks", material.Ks);
-	shader.setFloat("_Material.Shininess", material.Shininess);*/
-	
 	//draw the spheres
 	for (int i = 0; i < SUZAN_X * SUZAN_Y; i++)
 	{
@@ -328,6 +328,7 @@ int main() {
 	ew::Shader geoShader = ew::Shader("assets/geoShader.vert", "assets/geoShader.frag");
 	ew::Shader renderVolume = ew::Shader("assets/volume.vert", "assets/volume.frag");
 	ew::Mesh light = ew::createSphere(0.5f, 4);
+	ew::Mesh lightVolumeMesh = ew::createSphere(lights[0].radius, 4);
 	
 	//init camera
 	camera.position = glm::vec3(0.0f, 0.0f, 5.0f);
@@ -343,6 +344,7 @@ int main() {
 	framebuffer = wm::createHDR_FramBuffer(screenWidth, screenHeight);
 	lightBuffer = wm::createHDR_FramBuffer(screenWidth, screenHeight);
 
+	testBuffer = wm::createHDR_FramBuffer(screenWidth, screenHeight);
 	//inint full screen quad
 	glGenVertexArrays(1, &fullscreenQuad.vao);
 	glGenBuffers(1, &fullscreenQuad.vbo);
@@ -385,14 +387,14 @@ int main() {
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		renderMonekey(_default, model,light, window);
+		renderMonekey(_default, model, light, window);
 
-		//moving this function ends up breaking it
-		postProcess(geoShader, framebuffer, lightBuffer);
-
-		RenderVolume(lightBuffer, renderVolume, framebuffer, light);
+		RenderVolume(testBuffer, renderVolume, framebuffer, lightVolumeMesh);
 		
+		//moving this function ends up breaking it
 
+		postProcess(geoShader, framebuffer, testBuffer);
+		
 		// redner lights
 		renderSphere(light, _default, lightBuffer);
 		drawUI();
@@ -429,7 +431,9 @@ void drawUI() {
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[1], ImVec2(400, 300));
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[2], ImVec2(400, 300));
 
-	ImGui::Image((ImTextureID)(intptr_t)lightBuffer.colorBuffer[0], ImVec2(400, 300));
+	ImGui::Image((ImTextureID)(intptr_t)testBuffer.colorBuffer[0], ImVec2(400, 300));
+	ImGui::Image((ImTextureID)(intptr_t)testBuffer.colorBuffer[1], ImVec2(400, 300));
+	ImGui::Image((ImTextureID)(intptr_t)testBuffer.colorBuffer[2], ImVec2(400, 300));
 
 	ImGui::End();
 
