@@ -21,6 +21,7 @@ uniform Light _lights;
 uniform sampler2D _albito;
 uniform sampler2D _normals; 
 uniform sampler2D _positions;
+uniform sampler2D _MaterialTex;
 
 uniform vec3 _EyePos;
 
@@ -37,7 +38,7 @@ float attenuateLinear(float dist, float radius){
 	return clamp((radius-dist)/radius,0.0,1.0);
 }
 
-vec3 calcPointLight(Light light, vec3 normal, vec3 pos)
+vec3 calcPointLight(Light light, vec3 normal, vec3 pos, vec2 UV)
 {
 
 	vec3 diff = light.pos - pos;
@@ -46,15 +47,17 @@ vec3 calcPointLight(Light light, vec3 normal, vec3 pos)
 	//TODO: Usual blinn-phong calculations for diffuse + specular
 	float diffuseFactor = max(dot(normal,toLight),0.0);
 
-	vec3 diffuseColor = light.color * diffuseFactor;
+	vec4 mat = texture(_MaterialTex, UV).rgba;
+
+	vec3 diffuseColor = light.color * mat.g;
 
 	vec3 toEye = normalize(_EyePos - pos);
 
 	vec3 h = normalize(toLight + toEye);
 
-	float specularFactor = pow(max(dot(normal,h),0.0),_Material.Shininess);
+	float specularFactor = pow(max(dot(normal,h),0.0),mat.a);
 
-	vec3 lightColor = (diffuseColor * _Material.Kd + specularFactor * _Material.Ks) * light.color;
+	vec3 lightColor = (diffuseColor  + specularFactor * mat.b) * light.color;
 
 	//Attenuation
 	float d = length(diff); //Distance to light
@@ -64,6 +67,7 @@ vec3 calcPointLight(Light light, vec3 normal, vec3 pos)
 
 //Linear falloff
 
+//TODO:Add ambient light -- somthing might be wrong with the specular?
 void main()
 {
 	vec2 UV = gl_FragCoord.xy / textureSize(_normals,0);
@@ -72,7 +76,7 @@ void main()
 	vec3 worldPos = texture(_positions, UV).rgb;
 
 	Light light = _lights;
-	vec3 lightColor = calcPointLight(light, normal, worldPos);
+	vec3 lightColor = calcPointLight(light, normal, worldPos, UV);
 
 	myColor = vec4(lightColor * texture(_albito, UV).rgb, 1.0);
 	//myColor = vec4(vec3(1.0,1.0,1.0), 1.0);

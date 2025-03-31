@@ -243,11 +243,15 @@ void RenderVolume(wm::FrameBuffer& lightBuffer, ew::Shader shader, wm::FrameBuff
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, gBuffer.colorBuffer[2]);
 
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, gBuffer.colorBuffer[3]);
+
 	shader.use();
 
 	shader.setInt("_albito", 0);
 	shader.setInt("_normals", 2);
 	shader.setInt("_positions", 1);
+	shader.setInt("_MaterialTex", 3);
 
 	lightTrans.scale = glm::vec3(5);
 	shader.setMat4("_Model", lightTrans.modelMatrix());

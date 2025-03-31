@@ -64,6 +64,7 @@ vec3 blinFong(vec3 WorldNormal, vec3 WorldPos, vec3 _lightColor, vec3 LightPos, 
 
 	float specularFactor = pow(max(dot(normal,h),0.0),_Material.Shininess);
 
+
 	vec3 lightColor = (diffuseColor * _Material.Kd + specularFactor * _Material.Ks) * _lightColor;
 
 	//lightColor *= attenuation(length(toLight), radius);
