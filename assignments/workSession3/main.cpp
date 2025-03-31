@@ -431,10 +431,9 @@ void drawUI() {
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[0], ImVec2(400, 300));
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[1], ImVec2(400, 300));
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[2], ImVec2(400, 300));
+	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[3], ImVec2(400, 300));
 
 	ImGui::Image((ImTextureID)(intptr_t)testBuffer.colorBuffer[0], ImVec2(400, 300));
-	ImGui::Image((ImTextureID)(intptr_t)testBuffer.colorBuffer[1], ImVec2(400, 300));
-	ImGui::Image((ImTextureID)(intptr_t)testBuffer.colorBuffer[2], ImVec2(400, 300));
 
 	ImGui::End();
 

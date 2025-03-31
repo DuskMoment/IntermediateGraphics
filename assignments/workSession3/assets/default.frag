@@ -3,12 +3,24 @@
 layout(location = 0)out vec4 FragAlbito;
 layout(location = 1)out vec4 FragPos;
 layout(location = 2)out vec4 FragNormal;
+layout(location = 3)out vec4 Mat;
 in Surface{
 	vec3 WorldPos;
 	vec3 WorldNormal;
 	vec2 TexCoord;
 	mat3 TBN;
 }fs_in;
+
+struct Material{
+	float Ka;
+	float Kd;
+	float Ks;
+	float Shininess;
+	
+};
+
+//uniforms
+uniform Material _Material;
 
 //camera uniforms
 uniform vec3 _EyePos;
@@ -27,4 +39,5 @@ void main()
 	FragAlbito = vec4(Color,1.0); 
 	FragPos = vec4(fs_in.WorldPos, 1.0);
 	FragNormal = vec4(fs_in.WorldNormal.xyz, 1.0);
+	Mat = vec4(_Material.Ka, _Material.Kd, _Material.Ks, _Material.Shininess);
 }
