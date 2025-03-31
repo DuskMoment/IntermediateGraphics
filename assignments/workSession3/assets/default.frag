@@ -14,7 +14,7 @@ in Surface{
 uniform vec3 _EyePos;
 uniform vec3 _Color = vec3(1.0,1.0,1.0);
 
-
+uniform sampler2D _Texture;
 
 void main()
 {
@@ -22,8 +22,9 @@ void main()
 	//load normal map
 	//FragColor = vec4(1.0, 0, 0, 1.0);
 	//FragColor = vec4(fs_in.WorldPos.xyz, 1.0);
+	vec3 Color = texture(_Texture, fs_in.TexCoord.xy).rgb;
 
-	FragAlbito = vec4(_Color,1.0); 
+	FragAlbito = vec4(Color,1.0); 
 	FragPos = vec4(fs_in.WorldPos, 1.0);
 	FragNormal = vec4(fs_in.WorldNormal.xyz, 1.0);
 }

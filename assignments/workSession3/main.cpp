@@ -149,8 +149,7 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh& light, GLFWwi
 	shader.setVec3("_Color", glm::vec3(1.0,1.0,1.0));
 
 	//textures
-	shader.setInt("_MainTex", 0);
-	shader.setInt("_NormalMap", 1);
+	shader.setInt("_Texture", 0);
 
 	for (int i = -1; i < SUZAN_X; i++)
 	{
@@ -323,12 +322,14 @@ int main() {
 	//chache 
 	
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
-	ew::Model model = ew::Model("assets/Suzanne.fbx");
 	ew::Shader _default = ew::Shader("assets/default.vert", "assets/default.frag");
 	ew::Shader geoShader = ew::Shader("assets/geoShader.vert", "assets/geoShader.frag");
 	ew::Shader renderVolume = ew::Shader("assets/volume.vert", "assets/volume.frag");
+	ew::Shader debugLight = ew::Shader("assets/DebugLight.vert", "assets/DebugLight.frag");
+	ew::Model model = ew::Model("assets/Suzanne.fbx");
+
 	ew::Mesh light = ew::createSphere(0.5f, 4);
-	ew::Mesh lightVolumeMesh = ew::createSphere(lights[0].radius, 4);
+	ew::Mesh lightVolumeMesh = ew::createSphere(lights[0].radius, 100);
 	
 	//init camera
 	camera.position = glm::vec3(0.0f, 0.0f, 5.0f);
@@ -396,7 +397,7 @@ int main() {
 		postProcess(geoShader, framebuffer, testBuffer);
 		
 		// redner lights
-		renderSphere(light, _default, lightBuffer);
+		renderSphere(light, debugLight, lightBuffer);
 		drawUI();
 		
 
