@@ -81,20 +81,15 @@ struct Light
 {
 	glm::vec3 pos;
 	glm::vec3 color;
-	float radius =3;
+	float radius = 7;
 };
 Light lights[SUZAN_X * SUZAN_Y];
 
 //random nuber gen
 
-
-
 void calcualteLightRange(float x, float y, int lightIndex)
 {
-	//fix me :3
-	//static std::random_device rd;
-	//static std::mt19937 gen(rd());
-	//static std::uniform_real_distribution<>dis(x, y + 3);
+	
 	float randX = x;//dis(gen);
 	float randZ = y; //dis(gen);
 
@@ -108,7 +103,7 @@ void calcualteLightRange(float x, float y, int lightIndex)
 	
 }
 
-void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh& light, GLFWwindow* window)
+void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh& light, ew::Mesh& plane, GLFWwindow* window)
 {
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
@@ -155,14 +150,16 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh& light, GLFWwi
 	{
 		for (int j = -1; j < SUZAN_Y; j++)
 		{
-			model.draw();
 
 			shader.setMat4("_Model", glm::translate(glm::vec3(2.0f * i, 0 , 2.0f * j)));
-
+			model.draw();
 			//calcualteLightRange(2.0f * i, 2.0f * j, i+j);
 		}
 		
 	}
+
+	shader.setMat4("_Model", glm::translate(glm::vec3(0, -3, 0)));
+	plane.draw();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	controller.move(window, &camera, deltaTime);
@@ -185,19 +182,13 @@ void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer, wm::FrameBuffer& b
 
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, bufferLight.colorBuffer[0]);
-	//glActiveTexture(GL_TEXTURE3);
-	//glBindTexture(GL_TEXTURE_2D, bufferLight.colorBuffer[0]);
-
-	//glActiveTexture(GL_TEXTURE4);
-	//glBindTexture(GL_TEXTURE_2D, bufferLight.colorBuffer[1]);
-
+	
 	shader.use();
 	shader.setInt("_coords", 1);
 	shader.setInt("_Normals", 2);
 	shader.setInt("_Albito", 0);
 	shader.setInt("_Volume", 3);
 
-	//these need to be looped through? - mov to after the quad
 	int max = SUZAN_X * SUZAN_Y;
 	
 	for (int i = 0; i < max; i++)
@@ -208,13 +199,6 @@ void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer, wm::FrameBuffer& b
 	}
 
 	shader.setVec3("_EyePos", camera.position);
-
-	//material
-	shader.setFloat("_Material.Ka", material.Ka);
-	shader.setFloat("_Material.Kd", material.Kd);
-	shader.setFloat("_Material.Ks", material.Ks);
-	shader.setFloat("_Material.Shininess", material.Shininess);
-
 
 	glBindVertexArray(fullscreenQuad.vao);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -259,10 +243,6 @@ void RenderVolume(wm::FrameBuffer& lightBuffer, ew::Shader shader, wm::FrameBuff
 
 	shader.setVec3("_EyePos", camera.position);
 
-	shader.setFloat("_Material.Ka", material.Ka);
-	shader.setFloat("_Material.Kd", material.Kd);
-	shader.setFloat("_Material.Ks", material.Ks);
-	shader.setFloat("_Material.Shininess", material.Shininess);
 
 	for (int i = 0; i < SUZAN_X * SUZAN_Y; i++)
 	{
@@ -326,14 +306,15 @@ int main() {
 	//chache 
 	
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
-	ew::Shader _default = ew::Shader("assets/default.vert", "assets/default.frag");
 	ew::Shader geoShader = ew::Shader("assets/geoShader.vert", "assets/geoShader.frag");
+	ew::Shader combind = ew::Shader("assets/Combind.vert", "assets/Combind.frag");
 	ew::Shader renderVolume = ew::Shader("assets/volume.vert", "assets/volume.frag");
 	ew::Shader debugLight = ew::Shader("assets/DebugLight.vert", "assets/DebugLight.frag");
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 
 	ew::Mesh light = ew::createSphere(0.5f, 4);
 	ew::Mesh lightVolumeMesh = ew::createSphere(lights[0].radius, 100);
+	ew::Mesh plane = ew::createPlane(100, 100, 100);
 	
 	//init camera
 	camera.position = glm::vec3(0.0f, 0.0f, 5.0f);
@@ -344,7 +325,6 @@ int main() {
 	//texture
 	brickTexture = ew::loadTexture("assets/bricks/Bricks075A_1K-JPG_Color.jpg");
 	normalMapping = ew::loadTexture("assets/bricks/Bricks075A_1K-JPG_NormalDX.jpg");
-	//brickTexture = ew::loadTexture("assets/brick_color.jpg");
 	
 	framebuffer = wm::createHDR_FramBuffer(screenWidth, screenHeight);
 	lightBuffer = wm::createHDR_FramBuffer(screenWidth, screenHeight);
@@ -366,12 +346,6 @@ int main() {
 
 	glBindVertexArray(0);
 
-	// instancing
-
-	// calculagte all suzannes
-	// all lights
-
-	
 	for (int i = 0; i < SUZAN_X; i++)
 	{
 		for (int j = 0; j < SUZAN_Y; j++)
@@ -392,13 +366,13 @@ int main() {
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		renderMonekey(_default, model, light, window);
+		renderMonekey(geoShader, model, light, plane, window);
 
 		RenderVolume(testBuffer, renderVolume, framebuffer, lightVolumeMesh);
 		
 		//moving this function ends up breaking it
 
-		postProcess(geoShader, framebuffer, testBuffer);
+		postProcess(combind, framebuffer, testBuffer);
 		
 		// redner lights
 		renderSphere(light, debugLight, lightBuffer);

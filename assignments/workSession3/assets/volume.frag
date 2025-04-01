@@ -38,33 +38,54 @@ float attenuateLinear(float dist, float radius){
 	return clamp((radius-dist)/radius,0.0,1.0);
 }
 
-vec3 calcPointLight(Light light, vec3 normal, vec3 pos, vec2 UV)
+vec3 calcPointLight(Light light, vec3 normal, vec3 pos, vec4 mat)
 {
 
-	vec3 diff = light.pos - pos;
-	//Direction toward light position
-	vec3 toLight = normalize(diff);
-	//TODO: Usual blinn-phong calculations for diffuse + specular
-	float diffuseFactor = max(dot(normal,toLight),0.0);
+	
 
-	vec4 mat = texture(_MaterialTex, UV).rgba;
+	vec3 lightDir = normalize(light.pos - pos);
+	vec3 viewDir = normalize(_EyePos - pos);
+	vec3 halfWay = normalize(lightDir + viewDir);
 
-	vec3 diffuseColor = light.color * mat.g;
+	//diffuse
+	float diff = max(dot(normal, lightDir), 0.0);
+	
+	vec3 diffuse = mat.g * diff * light.color;
 
-	vec3 toEye = normalize(_EyePos - pos);
 
-	vec3 h = normalize(toLight + toEye);
+	//specular
+	float specStr = 0.5;
+	float spec = pow(max(dot(normal, halfWay),0.0),mat.a);
+	vec3 specColor = mat.b * spec * light.color;
 
-	float specularFactor = pow(max(dot(normal,h),0.0),mat.a);
+	vec3 ambient = light.color * mat.r;
 
-	vec3 lightColor = (diffuseColor  + specularFactor * mat.b) * light.color;
+	return (diffuse + specColor) * attenuateLinear(length(light.pos - pos),light.radius);
 
-	//Attenuation
-	float d = length(diff); //Distance to light
-	lightColor *= attenuateLinear(d,light.radius); //See below for attenuation options
-	return lightColor;
+
+//	vec3 diff = light.pos - pos;
+//	//Direction toward light position
+//	vec3 toLight = normalize(diff);
+//	//TODO: Usual blinn-phong calculations for diffuse + specular
+//	float diffuseFactor = max(dot(normal,toLight),0.0);
+//
+//	vec4 mat = texture(_MaterialTex, UV).rgba;
+//
+//	vec3 diffuseColor = light.color * mat.g;
+//
+//	vec3 toEye = normalize(_EyePos - pos);
+//
+//	vec3 h = normalize(toLight + toEye);
+//
+//	float specularFactor = pow(max(dot(normal,h),0.0),mat.a);
+//
+//	vec3 lightColor = (diffuseColor  + specularFactor * mat.b) * light.color;
+//
+//	//Attenuation
+//	float d = length(diff); //Distance to light
+//	lightColor *= attenuateLinear(d,light.radius); //See below for attenuation options
+//	return lightColor;
 }
-
 //Linear falloff
 
 //TODO:Add ambient light -- somthing might be wrong with the specular?
@@ -73,12 +94,15 @@ void main()
 	vec2 UV = gl_FragCoord.xy / textureSize(_normals,0);
 
 	vec3 normal = texture(_normals, UV).rgb;
+	normal = normalize(normal);
 	vec3 worldPos = texture(_positions, UV).rgb;
 
-	Light light = _lights;
-	vec3 lightColor = calcPointLight(light, normal, worldPos, UV);
+	vec4 mat = texture(_MaterialTex, UV).rgba;
 
-	myColor = vec4(lightColor * texture(_albito, UV).rgb, 1.0);
+	Light light = _lights;
+	vec3 lightColor = calcPointLight(light, normal, worldPos, mat);
+
+	myColor = vec4(lightColor * (texture(_albito, UV).rgb * mat.r), 1.0);
 	//myColor = vec4(vec3(1.0,1.0,1.0), 1.0);
 
 }

@@ -1,5 +1,9 @@
 #version 450
-
+//out vec4 FragColor; //the color of the fragment Shader
+layout(location = 0)out vec4 FragAlbito;
+layout(location = 1)out vec4 FragPos;
+layout(location = 2)out vec4 FragNormal;
+layout(location = 3)out vec4 Mat;
 in Surface{
 	vec3 WorldPos;
 	vec3 WorldNormal;
@@ -18,80 +22,22 @@ struct Material{
 //uniforms
 uniform Material _Material;
 
-uniform sampler2D _coords;
-uniform sampler2D _Normals;
-uniform sampler2D _Albito;
-
-uniform sampler2D _Volume;
-
-//uniform sampler2D _LightAlbito;
-//uniform sampler2D _LightPos;
-
-vec3 _LightColor = vec3(1.0);
+//camera uniforms
 uniform vec3 _EyePos;
+uniform vec3 _Color = vec3(1.0,1.0,1.0);
 
-out vec4 FragColor;
-vec3 LightDirection = vec3(0.0,-1.0, 0.0);
+uniform sampler2D _Texture;
 
-const int MAX_SUZAN = 100;
-struct Light
-{
-	vec3 pos;
-	vec3 color;
-	float radius;
-};
-uniform Light _lights[MAX_SUZAN];
-
-float attenuation(float dist, float radius)
-{
-	
-	return clamp((radius - dist)/radius,0.0,1.0);
-}
-
-vec3 blinFong(vec3 WorldNormal, vec3 WorldPos, vec3 _lightColor, vec3 LightPos, float radius)
-{
-	vec3 normal = normalize(WorldNormal);
-
-	vec3 toLight = normalize(LightPos - WorldPos);
-
-	float diffuseFactor = max(dot(normal,toLight),0.0);
-
-	vec3 diffuseColor = _LightColor * diffuseFactor;
-
-	vec3 toEye = normalize(_EyePos - WorldPos);
-
-	vec3 h = normalize(toLight + toEye);
-
-	float specularFactor = pow(max(dot(normal,h),0.0),_Material.Shininess);
-
-
-	vec3 lightColor = (diffuseColor * _Material.Kd + specularFactor * _Material.Ks) * _lightColor;
-
-	//lightColor *= attenuation(length(toLight), radius);
-
-	return lightColor;
-
-}
-void main()	
+void main()
 {
 
-	vec3 texColor = texture(_Albito, fs_in.TexCoord).rgb;
-	vec3 volume = texture(_Volume, fs_in.TexCoord).rgb;
+	//load normal map
+	//FragColor = vec4(1.0, 0, 0, 1.0);
+	//FragColor = vec4(fs_in.WorldPos.xyz, 1.0);
+	vec3 Color = texture(_Texture, fs_in.TexCoord.xy).rgb;
 
-	//vec3 lightColor = texture(_LightAlbito, fs_in.TexCoord).rgb;
-	//vec3 lighPos = texture(_LightPos, fs_in.TexCoord).rgb;
-
-	vec3 color; //= blinFong(texture(_Normals, fs_in.TexCoord).xyz, texture(_coords, fs_in.TexCoord).xyz, _LightColor, LightDirection);
-
-//	for(int i = 0; i < MAX_SUZAN; i++)
-//	{
-//	  color += blinFong(texture(_Normals, fs_in.TexCoord).xyz, texture(_coords, fs_in.TexCoord).xyz, _lights[i].color, _lights[i].pos, _lights[i].radius);
-//	}
-
-
-
-    color = texColor * volume;
-
-	FragColor = vec4(color, 1.0);
-
+	FragAlbito = vec4(Color,1.0); 
+	FragPos = vec4(fs_in.WorldPos, 1.0);
+	FragNormal = vec4(fs_in.WorldNormal.xyz, 1.0);
+	Mat = vec4(_Material.Ka, _Material.Kd, _Material.Ks, _Material.Shininess);
 }
