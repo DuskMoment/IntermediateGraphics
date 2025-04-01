@@ -19,6 +19,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 
+
 #include <wm/framebuffer.h>
 #include <random>
 
@@ -48,8 +49,12 @@ GLuint brickTexture;
 GLuint normalMapping;
 
 wm::FrameBuffer framebuffer;
-wm::FrameBuffer lightBuffer;
+wm::FrameBuffer shdwMap;
 wm::FrameBuffer testBuffer;
+wm::FrameBuffer lightBuffer;
+
+glm::vec3 test1;
+glm::vec3 test2;
 
 struct Material 
 {
@@ -103,9 +108,38 @@ void calcualteLightRange(float x, float y, int lightIndex)
 	
 }
 
-void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh& light, ew::Mesh& plane, GLFWwindow* window)
+void renderMonekey(ew::Shader& shader, ew::Shader& shdw, ew::Model& model, ew::Mesh& light, ew::Mesh& plane, GLFWwindow* window, glm::mat4 lightMat)
 {
+	glBindFramebuffer(GL_FRAMEBUFFER, shdwMap.fbo);
+	{
+		glViewport(0, 0, 500, 500);
+		glCullFace(GL_FRONT);
+		glEnable(GL_DEPTH_TEST);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		shdw.use();
+
+		
+		for (int i = -1; i < SUZAN_X; i++)
+		{
+			for (int j = -1; j < SUZAN_Y; j++)
+			{
+				
+				shdw.setMat4("lightSpaceMatrix", lightMat);
+				shdw.setMat4("model", glm::translate(glm::vec3(2.0f * i, 0, 2.0f * j)));
+				model.draw();
+				
+				//calcualteLightRange(2.0f * i, 2.0f * j, i+j);
+			}
+
+		}
+
+
+	}
+	glCullFace(GL_BACK);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	
+	glViewport(0, 0, screenWidth, screenHeight);
+
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
 	//pipeline definition
 	glEnable(GL_CULL_FACE);
@@ -146,11 +180,14 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh& light, ew::Me
 	//textures
 	shader.setInt("_Texture", 0);
 
+	shader.setMat4("model", modelTrans.modelMatrix());
+
+	model.draw();
+
 	for (int i = -1; i < SUZAN_X; i++)
 	{
 		for (int j = -1; j < SUZAN_Y; j++)
 		{
-
 			shader.setMat4("_Model", glm::translate(glm::vec3(2.0f * i, 0 , 2.0f * j)));
 			model.draw();
 			//calcualteLightRange(2.0f * i, 2.0f * j, i+j);
@@ -159,7 +196,7 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, ew::Mesh& light, ew::Me
 	}
 
 	shader.setMat4("_Model", glm::translate(glm::vec3(0, -3, 0)));
-	plane.draw();
+	//plane.draw();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	controller.move(window, &camera, deltaTime);
@@ -310,6 +347,7 @@ int main() {
 	ew::Shader combind = ew::Shader("assets/Combind.vert", "assets/Combind.frag");
 	ew::Shader renderVolume = ew::Shader("assets/volume.vert", "assets/volume.frag");
 	ew::Shader debugLight = ew::Shader("assets/DebugLight.vert", "assets/DebugLight.frag");
+	ew::Shader shadowShader = ew::Shader("assets/shadowMap.vert", "assets/shadowMap.frag");
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 
 	ew::Mesh light = ew::createSphere(0.5f, 4);
@@ -327,6 +365,7 @@ int main() {
 	normalMapping = ew::loadTexture("assets/bricks/Bricks075A_1K-JPG_NormalDX.jpg");
 	
 	framebuffer = wm::createHDR_FramBuffer(screenWidth, screenHeight);
+	shdwMap = wm::createShadowBuffer(500,500);
 	lightBuffer = wm::createHDR_FramBuffer(screenWidth, screenHeight);
 
 	testBuffer = wm::createHDR_FramBuffer(screenWidth, screenHeight);
@@ -355,8 +394,25 @@ int main() {
 
 	}
 
+	//shadow mapping light
+	float near_plane = 0.01f, far_plane = 100;
+
+	glm::mat4 lightProjection = glm::ortho(-15.0f, 15.0f, -15.0f, 15.0f, near_plane, far_plane);
+	//-2.0f, 4.0f, -1.0f
+
+	ew::Camera shadowCam;
+	shadowCam.farPlane = 100;
+	shadowCam.nearPlane = 0.01f;
+
+	//shadowCam.position = 7.195, 8.104, 6.474
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
+
+		glm::mat4 lightView = glm::lookAt(glm::vec3(8.497, 12.498, 8.783),
+			glm::vec3(8.497, 11.498, 8.808),
+			glm::vec3(0.0f, 1.0f, 0.0f));
+
+		const glm::mat4 lightSpaceMat = lightProjection * lightView;
 
 		float time = (float)glfwGetTime();
 		deltaTime = time - prevFrameTime;
@@ -366,7 +422,7 @@ int main() {
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		renderMonekey(geoShader, model, light, plane, window);
+		renderMonekey(geoShader, shadowShader, model, light, plane, window, lightSpaceMat);
 
 		RenderVolume(testBuffer, renderVolume, framebuffer, lightVolumeMesh);
 		
@@ -405,13 +461,20 @@ void drawUI() {
 		ImGui::SliderFloat("Shininess", &material.Shininess, 2.0f, 1024.0f);
 
 	}
+	ImGui::DragFloat3("Test1",&camera.position.x);
+	ImGui::DragFloat3("Test2", &camera.target.x);
+
+	ImGui::Image((ImTextureID)(intptr_t)shdwMap.depthBuffer, ImVec2(400, 300));
 
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[0], ImVec2(400, 300));
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[1], ImVec2(400, 300));
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[2], ImVec2(400, 300));
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[3], ImVec2(400, 300));
+	ImGui::Image((ImTextureID)(intptr_t)framebuffer.depthBuffer, ImVec2(400, 300));
 
 	ImGui::Image((ImTextureID)(intptr_t)testBuffer.colorBuffer[0], ImVec2(400, 300));
+
+	
 
 	ImGui::End();
 
