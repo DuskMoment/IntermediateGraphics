@@ -32,8 +32,8 @@ int screenHeight = 720;
 float prevFrameTime;
 float deltaTime;
 
-const int SUZAN_X = 10;
-const int SUZAN_Y = 10;
+const int SUZAN_X = 1;
+const int SUZAN_Y = 1;
 
 //camera
 ew::Camera camera;
@@ -264,6 +264,10 @@ void RenderVolume(wm::FrameBuffer& lightBuffer, ew::Shader shader, wm::FrameBuff
 	shader.setFloat("_Material.Ks", material.Ks);
 	shader.setFloat("_Material.Shininess", material.Shininess);
 
+	//change from testing
+	shader.setFloat("metalic", material.Ka);
+	shader.setFloat("roughness", material.Kd);
+
 	for (int i = 0; i < SUZAN_X * SUZAN_Y; i++)
 	{
 		shader.setVec3("_lights.pos", lights[i].pos);
@@ -326,10 +330,11 @@ int main() {
 	//chache 
 	
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
-	ew::Shader _default = ew::Shader("assets/default.vert", "assets/default.frag");
-	ew::Shader geoShader = ew::Shader("assets/geoShader.vert", "assets/geoShader.frag");
-	ew::Shader renderVolume = ew::Shader("assets/volume.vert", "assets/volume.frag");
+	ew::Shader _default = ew::Shader("assets/default.vert", "assets/default.frag"); // geo
+	ew::Shader geoShader = ew::Shader("assets/geoShader.vert", "assets/geoShader.frag");	// lighting eq.
+	ew::Shader renderVolume = ew::Shader("assets/volume.vert", "assets/volume.frag");	// volume.S
 	ew::Shader debugLight = ew::Shader("assets/DebugLight.vert", "assets/DebugLight.frag");
+	ew::Shader PBR = ew::Shader("assets/PBR.vert", "assets/PBR.frag");
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 
 	ew::Mesh light = ew::createSphere(0.5f, 4);
@@ -394,7 +399,7 @@ int main() {
 
 		renderMonekey(_default, model, light, window);
 
-		RenderVolume(testBuffer, renderVolume, framebuffer, lightVolumeMesh);
+		RenderVolume(testBuffer, PBR, framebuffer, lightVolumeMesh);
 		
 		//moving this function ends up breaking it
 
