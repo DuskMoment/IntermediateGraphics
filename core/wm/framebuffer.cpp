@@ -139,9 +139,21 @@ namespace wm
 		//attach buffers	
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, buffer.colorBuffer[3], 0);
 
+		//create brightness
+		glGenTextures(1, &buffer.colorBuffer[4]);
 
-		GLuint att[4] = { GL_COLOR_ATTACHMENT0 , GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
-		glDrawBuffers(4,att);
+		glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer[4]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, hight, 0, GL_RGBA, GL_FLOAT, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		//attach buffers	
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, buffer.colorBuffer[4], 0);
+
+		GLuint att[5] = { GL_COLOR_ATTACHMENT0 , GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4};
+		glDrawBuffers(5,att);
 
 		glGenTextures(1, &buffer.depthBuffer);
 

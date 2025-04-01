@@ -9,11 +9,14 @@ out Surface{
 	vec3 WorldNormal;
 	vec2 TexCoord;
 	mat3 TBN;
+	vec4 fragPosLightSpace;
 }vs_out;
 
 uniform mat4 _Model;
 
 uniform mat4 _VeiwProjection;
+
+uniform mat4 _LightSpaceMatrix;
 
 void main()
 {
@@ -21,6 +24,8 @@ void main()
 	vs_out.WorldNormal = transpose(inverse(mat3(_Model))) * in_Normal;
 
 	vs_out.TexCoord = in_TexCoords;
+
+	vs_out.fragPosLightSpace = _LightSpaceMatrix * vec4(vs_out.WorldPos, 1.0);
 
 	gl_Position = _VeiwProjection * _Model * vec4(in_Pos, 1.0);
 }

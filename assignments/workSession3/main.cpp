@@ -163,6 +163,7 @@ void renderMonekey(ew::Shader& shader, ew::Shader& shdw, ew::Model& model, ew::M
 	
 	//camera uniforms
 	shader.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
+	shader.setMat4("_LightSpaceMatrix", lightMat);
 	shader.setVec3("_EyePos", camera.position);
 
 	//model uniforms
@@ -196,7 +197,7 @@ void renderMonekey(ew::Shader& shader, ew::Shader& shdw, ew::Model& model, ew::M
 	}
 
 	shader.setMat4("_Model", glm::translate(glm::vec3(0, -3, 0)));
-	//plane.draw();
+	plane.draw();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	controller.move(window, &camera, deltaTime);
@@ -267,12 +268,21 @@ void RenderVolume(wm::FrameBuffer& lightBuffer, ew::Shader shader, wm::FrameBuff
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, gBuffer.colorBuffer[3]);
 
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, gBuffer.colorBuffer[4]);
+
+	glActiveTexture(GL_TEXTURE5);
+	glBindTexture(GL_TEXTURE_2D, shdwMap.depthBuffer);
+
 	shader.use();
 
 	shader.setInt("_albito", 0);
 	shader.setInt("_normals", 2);
 	shader.setInt("_positions", 1);
 	shader.setInt("_MaterialTex", 3);
+	shader.setInt("_ShadowPosition", 4);
+	shader.setInt("_ShadowMap", 5);
+
 
 	lightTrans.scale = glm::vec3(5);
 	shader.setMat4("_Model", lightTrans.modelMatrix());
@@ -470,7 +480,7 @@ void drawUI() {
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[1], ImVec2(400, 300));
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[2], ImVec2(400, 300));
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[3], ImVec2(400, 300));
-	ImGui::Image((ImTextureID)(intptr_t)framebuffer.depthBuffer, ImVec2(400, 300));
+	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[4], ImVec2(400, 300));
 
 	ImGui::Image((ImTextureID)(intptr_t)testBuffer.colorBuffer[0], ImVec2(400, 300));
 

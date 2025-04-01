@@ -4,11 +4,14 @@ layout(location = 0)out vec4 FragAlbito;
 layout(location = 1)out vec4 FragPos;
 layout(location = 2)out vec4 FragNormal;
 layout(location = 3)out vec4 Mat;
+layout(location = 4)out vec4 Shadow;
+
 in Surface{
 	vec3 WorldPos;
 	vec3 WorldNormal;
 	vec2 TexCoord;
 	mat3 TBN;
+	vec4 fragPosLightSpace;
 }fs_in;
 
 struct Material{
@@ -40,4 +43,5 @@ void main()
 	FragPos = vec4(fs_in.WorldPos, 1.0);
 	FragNormal = vec4(fs_in.WorldNormal.xyz, 1.0);
 	Mat = vec4(_Material.Ka, _Material.Kd, _Material.Ks, _Material.Shininess);
+	Shadow = fs_in.fragPosLightSpace;
 }
