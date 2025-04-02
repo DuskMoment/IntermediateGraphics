@@ -53,12 +53,9 @@ wm::FrameBuffer shdwMap;
 wm::FrameBuffer testBuffer;
 wm::FrameBuffer lightBuffer;
 
-glm::vec3 test1;
-glm::vec3 test2;
-
 struct Material 
 {
-	float Ka = 1.0;
+	float Ka = 0.0;
 	float Kd = 0.5;
 	float Ks = 0.5;
 	float Shininess = 128;
@@ -86,9 +83,16 @@ struct Light
 {
 	glm::vec3 pos;
 	glm::vec3 color;
-	float radius = 7;
+	
 };
+float radius = 2;
 Light lights[SUZAN_X * SUZAN_Y];
+
+
+float bias = 0.01;
+float maxBias = 0.01;
+bool pcf = false;
+int pcfAmmount = 1;
 
 //random nuber gen
 
@@ -233,7 +237,7 @@ void postProcess(ew::Shader& shader, wm::FrameBuffer& buffer, wm::FrameBuffer& b
 	{
 		shader.setVec3("_lights[" + std::to_string(i) + "].pos", lights[i].pos);
 		shader.setVec3("_lights[" + std::to_string(i) + "].color", lights[i].color);
-		shader.setFloat("_lights[" + std::to_string(i) + "].radius", lights[i].radius);
+		shader.setFloat("_lights[" + std::to_string(i) + "].radius", 7);
 	}
 
 	shader.setVec3("_EyePos", camera.position);
@@ -284,18 +288,25 @@ void RenderVolume(wm::FrameBuffer& lightBuffer, ew::Shader shader, wm::FrameBuff
 	shader.setInt("_ShadowMap", 5);
 
 
+	//shadows
+	shader.setFloat("_Bias", bias);
+	shader.setFloat("_BiasMax", bias);
+	shader.setInt("_PCF", pcf);
+	shader.setInt("_PCFAmmount", pcfAmmount);
+
 	lightTrans.scale = glm::vec3(5);
 	shader.setMat4("_Model", lightTrans.modelMatrix());
 	shader.setMat4("_VeiwProjection", camera.projectionMatrix() * camera.viewMatrix());
 
 	shader.setVec3("_EyePos", camera.position);
 
+	sphere.load(ew::createSphere(radius, 100));
 
 	for (int i = 0; i < SUZAN_X * SUZAN_Y; i++)
 	{
 		shader.setVec3("_lights.pos", lights[i].pos);
 		shader.setVec3("_lights.color", lights[i].color);
-		shader.setFloat("_lights.radius",lights[i].radius);
+		shader.setFloat("_lights.radius", radius);
 
 		shader.setMat4("_Model", glm::translate(lights[i].pos));//glm::translate(lights[i].pos)
 		//shader.setMat4("_Model", glm::scale(glm::vec3(5)));
@@ -328,7 +339,8 @@ void renderSphere(ew::Mesh& sphere, ew::Shader& shader, wm::FrameBuffer &buffer)
 	//draw the spheres
 	for (int i = 0; i < SUZAN_X * SUZAN_Y; i++)
 	{
-		shader.setMat4("_Model", glm::translate(lights[i].pos));
+	
+		shader.setMat4("_Model", glm::translate(lights[i].pos)); 
 		shader.setVec3("_Color", lights[i].color);
 		sphere.draw();
 
@@ -361,7 +373,7 @@ int main() {
 	ew::Model model = ew::Model("assets/Suzanne.fbx");
 
 	ew::Mesh light = ew::createSphere(0.5f, 4);
-	ew::Mesh lightVolumeMesh = ew::createSphere(lights[0].radius, 100);
+	ew::Mesh lightVolumeMesh = ew::createSphere(radius, 100);
 	ew::Mesh plane = ew::createPlane(100, 100, 100);
 	
 	//init camera
@@ -471,9 +483,15 @@ void drawUI() {
 		ImGui::SliderFloat("Shininess", &material.Shininess, 2.0f, 1024.0f);
 
 	}
-	ImGui::DragFloat3("Test1",&camera.position.x);
-	ImGui::DragFloat3("Test2", &camera.target.x);
+	if (ImGui::CollapsingHeader("Shadow"))
+	{
+		ImGui::SliderFloat("Min Bias", &bias, 0.0f, 0.01f);
+		ImGui::SliderFloat("Max Bias", &maxBias, 0.0f, 0.5f);
+		ImGui::Checkbox("PCF", &pcf);
+		ImGui::SliderInt("PCF Filter Ammount", &pcfAmmount, 1, 10);
 
+	}
+	ImGui::SliderFloat("volumeSize", &radius, 0.0f, 10.0f);
 	ImGui::Image((ImTextureID)(intptr_t)shdwMap.depthBuffer, ImVec2(400, 300));
 
 	ImGui::Image((ImTextureID)(intptr_t)framebuffer.colorBuffer[0], ImVec2(400, 300));

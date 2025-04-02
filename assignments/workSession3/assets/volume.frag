@@ -93,7 +93,7 @@ float attenuateLinear(float dist, float radius){
 	return clamp((radius-dist)/radius,0.0,1.0);
 }
 
-vec3 calcPointLight(Light light, vec3 normal, vec3 pos, vec4 mat)
+vec3 calcPointLight(Light light, vec3 normal, vec3 pos, vec4 mat, vec2 UV)
 {
 
 	vec3 lightDir = normalize(light.pos - pos);
@@ -116,7 +116,7 @@ vec3 calcPointLight(Light light, vec3 normal, vec3 pos, vec4 mat)
 	//shadows
 	float shadow = shadowCalcualtion(lightSpace, normal, lightDir);
 
-	return (diffuse + specColor) * (1.0 - shadow) * attenuateLinear(length(light.pos - pos),light.radius);
+	return ((diffuse + specColor) + (texture(_albito, UV).rgb * mat.r)) * (1.0 - shadow) * attenuateLinear(length(light.pos - pos),light.radius);
 
 
 //	vec3 diff = light.pos - pos;
@@ -159,9 +159,9 @@ void main()
 	vec4 mat = texture(_MaterialTex, UV).rgba;
 
 	Light light = _lights;
-	vec3 lightColor = calcPointLight(light, normal, worldPos, mat);
+	vec3 lightColor = calcPointLight(light, normal, worldPos, mat, UV);
 
-	myColor = vec4(lightColor * (texture(_albito, UV).rgb * mat.r), 1.0);
+	myColor = vec4(lightColor, 1.0);
 	//myColor = vec4(vec3(1.0,1.0,1.0), 1.0);
 
 }
