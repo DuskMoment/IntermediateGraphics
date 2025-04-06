@@ -29,6 +29,7 @@ uniform vec3 _LightDirection = vec3(0.0, -1.0,0.0);
 uniform vec3 _LightColor = vec3(1.0);
 uniform vec3 _AmbientColor = vec3(0.3,0.4,0.46);
 
+
 //camera uniforms
 uniform vec3 _EyePos;
 

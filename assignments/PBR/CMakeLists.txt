@@ -10,7 +10,7 @@ file(
  *.c *.cpp
 )
 #Copies this assignment0's asset folder to bin when it is built
-add_custom_target(copyAssetsPBR ALL COMMAND ${CMAKE_COMMAND} -E copy_directory
+add_custom_target(PBRA ALL COMMAND ${CMAKE_COMMAND} -E copy_directory
 ${CMAKE_CURRENT_SOURCE_DIR}/assets/
 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets/)
 
@@ -20,4 +20,4 @@ target_link_libraries(PBR PUBLIC core IMGUI assimp)
 target_include_directories(PBR PUBLIC ${CORE_INC_DIR} ${stb_INCLUDE_DIR})
 
 #Trigger asset copy when assignment0 is built
-add_dependencies(PBR copyAssetsPBR)
+add_dependencies(PBR PBRA)
