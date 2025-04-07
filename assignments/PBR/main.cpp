@@ -45,6 +45,7 @@ struct Material
 }material;
 
 float roughness = 0;
+float metalic;
 void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 {
 	
@@ -87,6 +88,7 @@ void renderMonekey(ew::Shader& shader, ew::Model& model, GLFWwindow* window)
 	shader.setInt("_NormalMap", 1);
 
 	shader.setFloat("_Roughness", roughness);
+	shader.setFloat("_metalic", metalic);
 
 	model.draw();
 
@@ -170,7 +172,8 @@ void drawUI() {
 
 	}
 	ImGui::SliderFloat("Roughness", &roughness, 0.0f, 1.0f);
-	
+	ImGui::SliderFloat("Metalic", &metalic, 0.0f, 1.0f);
+
 	ImGui::End();
 
 	ImGui::Render();
